@@ -1,0 +1,48 @@
+use std::vec::Vec;
+use crate::ast::Expr;
+
+grammar;
+
+match {
+ r"[0-9]+" => INT,
+ r"[0-9]+\.[0-9]+" => FLOAT,
+ r"\s*" => { },
+ r";.*" => { }
+} else {
+    _
+}
+
+pub Expr: Expr = {
+    <nil: "nil"> => Expr::Nil,
+    <bool: Bool> => Expr::Bool(bool),
+    <int: Int> => Expr::Int(int),
+    <float: Float> => Expr::Float(float),
+    <string: StringLit> => Expr::Str(string),
+    <id: Identifier> => Expr::Id(id),
+    "(" <list: List> ")" => Expr::List(list),
+};
+
+Bool: bool = {
+    "true" => true,
+    "false" => false,
+};
+
+Int: i64 = {
+    <n: INT> => n.parse().unwrap(),
+};
+
+Float: f64 = {
+    <n: FLOAT> => n.parse().unwrap(),
+};
+
+StringLit: String = {
+    <s: r#"\"(?:\\.|[^\\\"])*\"?"#> => s.to_string(),
+};
+
+Identifier: String = {
+    <id: r#"[^\s\[\]{}('\"`,;)]*"#> => id.to_string(),
+};
+
+List: Vec<Expr> = {
+    <mut expr: Expr*> => expr.into_iter().rev().collect(),
+}
