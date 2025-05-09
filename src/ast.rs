@@ -11,7 +11,7 @@ pub enum Expr {
     List(Vec<Expr>),
     Let {
         bindings: Vec<(String, Expr)>,
-        body: Vec<Expr>,
+        body: Box<Expr>,
     },
     If {
         cond: Box<Expr>,

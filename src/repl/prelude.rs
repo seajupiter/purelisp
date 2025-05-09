@@ -71,11 +71,11 @@ pub fn load_prelude(env: &mut Env) {
     env.set(
         "+".to_string(),
         Value::Closure {
-            params: vec!["y".to_string(), "x".to_string()],
+            params: vec!["x".to_string(), "y".to_string()],
             body: Expr::List(vec![
-                Expr::Id("y".to_string()),
-                Expr::Id("x".to_string()),
                 Expr::Id("_+".to_string()),
+                Expr::Id("x".to_string()),
+                Expr::Id("y".to_string()),
             ]),
             mappings: HashMap::new(),
         },
@@ -83,11 +83,11 @@ pub fn load_prelude(env: &mut Env) {
     env.set(
         "-".to_string(),
         Value::Closure {
-            params: vec!["y".to_string(), "x".to_string()],
+            params: vec!["x".to_string(), "y".to_string()],
             body: Expr::List(vec![
-                Expr::Id("y".to_string()),
-                Expr::Id("x".to_string()),
                 Expr::Id("_-".to_string()),
+                Expr::Id("x".to_string()),
+                Expr::Id("y".to_string()),
             ]),
             mappings: HashMap::new(),
         },
@@ -95,11 +95,11 @@ pub fn load_prelude(env: &mut Env) {
     env.set(
         "*".to_string(),
         Value::Closure {
-            params: vec!["y".to_string(), "x".to_string()],
+            params: vec!["x".to_string(), "y".to_string()],
             body: Expr::List(vec![
-                Expr::Id("y".to_string()),
-                Expr::Id("x".to_string()),
                 Expr::Id("_*".to_string()),
+                Expr::Id("x".to_string()),
+                Expr::Id("y".to_string()),
             ]),
             mappings: HashMap::new(),
         },
@@ -107,11 +107,11 @@ pub fn load_prelude(env: &mut Env) {
     env.set(
         "/".to_string(),
         Value::Closure {
-            params: vec!["y".to_string(), "x".to_string()],
+            params: vec!["x".to_string(), "y".to_string()],
             body: Expr::List(vec![
-                Expr::Id("y".to_string()),
-                Expr::Id("x".to_string()),
                 Expr::Id("_/".to_string()),
+                Expr::Id("x".to_string()),
+                Expr::Id("y".to_string()),
             ]),
             mappings: HashMap::new(),
         },
@@ -130,12 +130,12 @@ pub fn load_prelude(env: &mut Env) {
     );
     env.set(
         "=".to_string(),
-        Value::Closure{
-            params: vec!["y".to_string(), "x".to_string()],
+        Value::Closure {
+            params: vec!["x".to_string(), "y".to_string()],
             body: Expr::List(vec![
-                Expr::Id("y".to_string()),
-                Expr::Id("x".to_string()),
                 Expr::Id("_=".to_string()),
+                Expr::Id("x".to_string()),
+                Expr::Id("y".to_string()),
             ]),
             mappings: HashMap::new(),
         },
@@ -158,12 +158,12 @@ pub fn load_prelude(env: &mut Env) {
     );
     env.set(
         "<=".to_string(),
-        Value::Closure{
-            params: vec!["y".to_string(), "x".to_string()],
+        Value::Closure {
+            params: vec!["x".to_string(), "y".to_string()],
             body: Expr::List(vec![
-                Expr::Id("y".to_string()),
-                Expr::Id("x".to_string()),
                 Expr::Id("_<=".to_string()),
+                Expr::Id("x".to_string()),
+                Expr::Id("y".to_string()),
             ]),
             mappings: HashMap::new(),
         },
@@ -186,12 +186,12 @@ pub fn load_prelude(env: &mut Env) {
     );
     env.set(
         "<".to_string(),
-        Value::Closure{
-            params: vec!["y".to_string(), "x".to_string()],
+        Value::Closure {
+            params: vec!["x".to_string(), "y".to_string()],
             body: Expr::List(vec![
-                Expr::Id("y".to_string()),
-                Expr::Id("x".to_string()),
                 Expr::Id("_<".to_string()),
+                Expr::Id("x".to_string()),
+                Expr::Id("y".to_string()),
             ]),
             mappings: HashMap::new(),
         },
@@ -214,12 +214,12 @@ pub fn load_prelude(env: &mut Env) {
     );
     env.set(
         ">".to_string(),
-        Value::Closure{
-            params: vec!["y".to_string(), "x".to_string()],
+        Value::Closure {
+            params: vec!["x".to_string(), "y".to_string()],
             body: Expr::List(vec![
-                Expr::Id("y".to_string()),
-                Expr::Id("x".to_string()),
                 Expr::Id("_>".to_string()),
+                Expr::Id("x".to_string()),
+                Expr::Id("y".to_string()),
             ]),
             mappings: HashMap::new(),
         },
@@ -242,12 +242,12 @@ pub fn load_prelude(env: &mut Env) {
     );
     env.set(
         ">=".to_string(),
-        Value::Closure{
-            params: vec!["y".to_string(), "x".to_string()],
+        Value::Closure {
+            params: vec!["x".to_string(), "y".to_string()],
             body: Expr::List(vec![
-                Expr::Id("y".to_string()),
-                Expr::Id("x".to_string()),
                 Expr::Id("_>=".to_string()),
+                Expr::Id("x".to_string()),
+                Expr::Id("y".to_string()),
             ]),
             mappings: HashMap::new(),
         },
