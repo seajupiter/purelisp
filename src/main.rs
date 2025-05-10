@@ -1,10 +1,9 @@
 mod ast;
 mod parse;
-mod repl; 
+mod repl;
 
 use lalrpop_util::lalrpop_mod;
-lalrpop_mod!(pub mal);
-
+lalrpop_mod!(pub minilisp);
 
 fn main() {
     if repl::repl().is_err() {

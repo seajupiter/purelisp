@@ -18,6 +18,14 @@ pub enum Expr {
         then: Box<Expr>,
         else_: Box<Expr>,
     },
+    Fn {
+        args: Vec<String>,
+        body: Box<Expr>,
+    },
+    Def {
+        x: String,
+        y: Box<Expr>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -56,11 +64,11 @@ impl Env {
         table.insert(key, value);
     }
 
-    pub fn unset(&mut self, key: &str) {
-        if let Some(table) = self.tables.last_mut() {
-            table.remove(key);
-        }
-    }
+    // pub fn unset(&mut self, key: &str) {
+    //     if let Some(table) = self.tables.last_mut() {
+    //         table.remove(key);
+    //     }
+    // }
 
     pub fn get(&self, key: &str) -> Option<&Value> {
         for table in self.tables.iter().rev() {
@@ -75,9 +83,9 @@ impl Env {
         self.tables.push(map);
     }
 
-    pub fn pop(&mut self) {
-        if self.tables.len() > 1 {
-            self.tables.pop();
-        }
-    }
+    // pub fn pop(&mut self) {
+    //     if self.tables.len() > 1 {
+    //         self.tables.pop();
+    //     }
+    // }
 }

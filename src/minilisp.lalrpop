@@ -44,5 +44,5 @@ Identifier: String = {
 };
 
 List: Vec<Expr> = {
-    <mut expr: Expr*> => expr,
+    <expr: Expr*> => expr,
 }

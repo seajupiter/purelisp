@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::ast::{Env, Expr, Value};
+use crate::ast::{Env, Value};
+use crate::parse::parse;
 
 pub fn load_prelude(env: &mut Env) {
     env.set(
@@ -72,11 +73,7 @@ pub fn load_prelude(env: &mut Env) {
         "+".to_string(),
         Value::Closure {
             params: vec!["x".to_string(), "y".to_string()],
-            body: Expr::List(vec![
-                Expr::Id("_+".to_string()),
-                Expr::Id("x".to_string()),
-                Expr::Id("y".to_string()),
-            ]),
+            body: parse("(_+ x y)"),
             mappings: HashMap::new(),
         },
     );
@@ -84,11 +81,7 @@ pub fn load_prelude(env: &mut Env) {
         "-".to_string(),
         Value::Closure {
             params: vec!["x".to_string(), "y".to_string()],
-            body: Expr::List(vec![
-                Expr::Id("_-".to_string()),
-                Expr::Id("x".to_string()),
-                Expr::Id("y".to_string()),
-            ]),
+            body: parse("(_- x y)"),
             mappings: HashMap::new(),
         },
     );
@@ -96,11 +89,7 @@ pub fn load_prelude(env: &mut Env) {
         "*".to_string(),
         Value::Closure {
             params: vec!["x".to_string(), "y".to_string()],
-            body: Expr::List(vec![
-                Expr::Id("_*".to_string()),
-                Expr::Id("x".to_string()),
-                Expr::Id("y".to_string()),
-            ]),
+            body: parse("(_* x y)"),
             mappings: HashMap::new(),
         },
     );
@@ -108,11 +97,7 @@ pub fn load_prelude(env: &mut Env) {
         "/".to_string(),
         Value::Closure {
             params: vec!["x".to_string(), "y".to_string()],
-            body: Expr::List(vec![
-                Expr::Id("_/".to_string()),
-                Expr::Id("x".to_string()),
-                Expr::Id("y".to_string()),
-            ]),
+            body: parse("(_/ x y)"),
             mappings: HashMap::new(),
         },
     );
@@ -132,11 +117,7 @@ pub fn load_prelude(env: &mut Env) {
         "=".to_string(),
         Value::Closure {
             params: vec!["x".to_string(), "y".to_string()],
-            body: Expr::List(vec![
-                Expr::Id("_=".to_string()),
-                Expr::Id("x".to_string()),
-                Expr::Id("y".to_string()),
-            ]),
+            body: parse("(_= x y)"),
             mappings: HashMap::new(),
         },
     );
@@ -160,11 +141,7 @@ pub fn load_prelude(env: &mut Env) {
         "<=".to_string(),
         Value::Closure {
             params: vec!["x".to_string(), "y".to_string()],
-            body: Expr::List(vec![
-                Expr::Id("_<=".to_string()),
-                Expr::Id("x".to_string()),
-                Expr::Id("y".to_string()),
-            ]),
+            body: parse("(_<= x y)"),
             mappings: HashMap::new(),
         },
     );
@@ -188,11 +165,7 @@ pub fn load_prelude(env: &mut Env) {
         "<".to_string(),
         Value::Closure {
             params: vec!["x".to_string(), "y".to_string()],
-            body: Expr::List(vec![
-                Expr::Id("_<".to_string()),
-                Expr::Id("x".to_string()),
-                Expr::Id("y".to_string()),
-            ]),
+            body: parse("(_< x y)"),
             mappings: HashMap::new(),
         },
     );
@@ -216,11 +189,7 @@ pub fn load_prelude(env: &mut Env) {
         ">".to_string(),
         Value::Closure {
             params: vec!["x".to_string(), "y".to_string()],
-            body: Expr::List(vec![
-                Expr::Id("_>".to_string()),
-                Expr::Id("x".to_string()),
-                Expr::Id("y".to_string()),
-            ]),
+            body: parse("(_> x y)"),
             mappings: HashMap::new(),
         },
     );
@@ -244,11 +213,7 @@ pub fn load_prelude(env: &mut Env) {
         ">=".to_string(),
         Value::Closure {
             params: vec!["x".to_string(), "y".to_string()],
-            body: Expr::List(vec![
-                Expr::Id("_>=".to_string()),
-                Expr::Id("x".to_string()),
-                Expr::Id("y".to_string()),
-            ]),
+            body: parse("(_>= x y)"),
             mappings: HashMap::new(),
         },
     );

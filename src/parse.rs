@@ -1,7 +1,7 @@
 use crate::ast::Expr;
-use crate::mal;
+use crate::minilisp;
 
-pub fn advance_parse(expr: Expr) -> Expr {
+fn advance_parse(expr: Expr) -> Expr {
     match expr {
         Expr::List(list) => {
             // Transform each element in the list recursively
@@ -40,6 +40,32 @@ pub fn advance_parse(expr: Expr) -> Expr {
                         let else_ = Box::new(transformed_list[3].clone());
 
                         return Expr::If { cond, then, else_ };
+                    } else if id == "fn" && transformed_list.len() >= 3 {
+                        // Transform fn (lambda function) expression
+                        let mut args = Vec::new();
+
+                        // Check that the second element is a list of argument names
+                        if let Expr::List(arg_list) = &transformed_list[1] {
+                            // Extract argument names
+                            for arg in arg_list {
+                                if let Expr::Id(arg_name) = arg {
+                                    args.push(arg_name.clone());
+                                }
+                            }
+                        }
+
+                        // The third element is the body expression
+                        let body = Box::new(transformed_list[2].clone());
+
+                        return Expr::Fn { args, body };
+                    } else if id == "def" && transformed_list.len() == 3 {
+                        // Transform def expression
+                        if let Expr::Id(x) = &transformed_list[1] {
+                            let y = Box::new(transformed_list[2].clone());
+                            return Expr::Def { x: x.clone(), y };
+                        } else {
+                            panic!("First argument to def must be an identifier");
+                        }
                     }
                 }
             }
@@ -52,10 +78,10 @@ pub fn advance_parse(expr: Expr) -> Expr {
     }
 }
 
-pub fn parse(input: String) -> Option<Expr> {
-    match mal::ExprParser::new().parse(&input) {
-        Ok(expr) => Some(advance_parse(expr)),
-        Err(_) => None,
+pub fn parse(input: &str) -> Expr {
+    match minilisp::ExprParser::new().parse(&input) {
+        Ok(expr) => advance_parse(expr),
+        Err(_) => panic!("Parse error"),
     }
 }
 
@@ -98,6 +124,23 @@ pub fn print_expr(expr: &Expr) {
             print_expr(then);
             print!(" ");
             print_expr(else_);
+            print!(")");
+        }
+        Expr::Fn { args, body } => {
+            print!("(fn (");
+            for (i, arg) in args.iter().enumerate() {
+                if i > 0 {
+                    print!(" ");
+                }
+                print!("{}", arg);
+            }
+            print!(") ");
+            print_expr(body);
+            print!(")");
+        }
+        Expr::Def { x, y } => {
+            print!("(def {} ", x);
+            print_expr(y);
             print!(")");
         }
     }

@@ -1,15 +1,15 @@
-mod eval;
-mod prelude;
+pub mod eval;
+pub mod prelude;
 
 use prelude::load_prelude;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 
-use crate::ast::Env;
+use crate::ast::{Env, Expr};
 
 use crate::parse;
 
-pub fn repl() -> Result<()>{
+pub fn repl() -> Result<()> {
     let mut rl = DefaultEditor::new()?;
 
     #[cfg(feature = "with-file-history")]
@@ -24,19 +24,24 @@ pub fn repl() -> Result<()>{
         let readline = rl.readline("minilisp> ");
         match readline {
             Ok(line) => {
-                rl.add_history_entry(line.as_str())?;
-
-                let expr = parse::parse(line);
-                if expr.is_none() {
-                    println!("Parse failed");
-                    continue;
+                #[cfg(feature = "with-file-history")]
+                {
+                    rl.add_history_entry(line.as_str())?;
+                    rl.save_history("history.txt")?;
                 }
-                let expr = expr.unwrap(); // Safe to unwrap since we checked for None above
+
+                let expr = parse::parse(&line);
                 println!("Parsed form: {:?}", expr);
                 parse::print_expr(&expr);
                 println!("");
-                let value = eval::eval(expr, env.clone());
-                println!("Evaluation result: {:?}", value);
+                if let Expr::Def { x, y } = expr {
+                    let value = eval::eval(*y.clone(), env.clone());
+                    println!("Evaluation result of {:?}: {:?}", y, value);
+                    env.set(x, value);
+                } else {
+                    let value = eval::eval(expr, env.clone());
+                    println!("Evaluation result: {:?}", value);
+                }
             }
             Err(ReadlineError::Interrupted) => {
                 println!("CTRL-C");
@@ -52,9 +57,6 @@ pub fn repl() -> Result<()>{
             }
         }
     }
-
-    #[cfg(feature = "with-file-history")]
-    rl.save_history("history.txt")?;
 
     Ok(())
 }

@@ -42,6 +42,79 @@ pub fn eval(expr: Expr, env: Env) -> Value {
                 _ => panic!("If condition must evaluate to a boolean"),
             }
         }
+        Expr::Fn { args, body } => {
+            Value::Closure {
+                params: args.clone(),
+                body: *body.clone(),
+                mappings: {
+                    // Identify all identifiers in the function body
+                    let mut free_vars = std::collections::HashMap::new();
+
+                    // Helper function to extract free variables from expressions
+                    fn collect_free_vars(
+                        expr: &Expr,
+                        args: &Vec<String>,
+                        free_vars: &mut std::collections::HashMap<String, Value>,
+                        env: &Env,
+                    ) {
+                        match expr {
+                            Expr::Id(id) if !args.contains(id) => {
+                                if !free_vars.contains_key(id) {
+                                    if let Some(value) = env.get(id) {
+                                        free_vars.insert(id.clone(), value.clone());
+                                    } else {
+                                        panic!("Undefined identifier in closure: {}", id);
+                                    }
+                                }
+                            }
+                            Expr::Let { bindings, body } => {
+                                // Let introduces new bindings, so we don't capture those
+                                let binding_names: Vec<String> =
+                                    bindings.iter().map(|(name, _)| name.clone()).collect();
+
+                                // Process the body, but with binding names excluded
+                                let mut temp_args = args.clone();
+                                temp_args.extend(binding_names);
+                                collect_free_vars(body, &temp_args, free_vars, env);
+
+                                // Process binding expressions
+                                for (_, expr) in bindings {
+                                    collect_free_vars(expr, args, free_vars, env);
+                                }
+                            }
+                            Expr::If { cond, then, else_ } => {
+                                collect_free_vars(cond, args, free_vars, env);
+                                collect_free_vars(then, args, free_vars, env);
+                                collect_free_vars(else_, args, free_vars, env);
+                            }
+                            Expr::Fn {
+                                args: inner_args,
+                                body: inner_body,
+                            } => {
+                                // Function introduces new arguments, exclude them from captured variables
+                                let mut temp_args = args.clone();
+                                temp_args.extend(inner_args.clone());
+                                collect_free_vars(inner_body, &temp_args, free_vars, env);
+                            }
+                            Expr::Def { x: _, y: value } => {
+                                // Process the value expression
+                                collect_free_vars(value, args, free_vars, env);
+                            }
+                            Expr::List(exprs) => {
+                                for expr in exprs {
+                                    collect_free_vars(expr, args, free_vars, env);
+                                }
+                            }
+                            // For other expression types, no free variables to capture
+                            _ => {}
+                        }
+                    }
+
+                    collect_free_vars(&body, &args, &mut free_vars, &env);
+                    free_vars
+                },
+            }
+        }
         Expr::List(list) if !list.is_empty() => {
             let vals: Vec<Value> = list.iter().map(|e| eval(e.clone(), env.clone())).collect();
             let f = &vals[0];
@@ -98,8 +171,11 @@ pub fn eval(expr: Expr, env: Env) -> Value {
                 _ => panic!("Type error: {:?}", f),
             }
         }
-        Expr::List(list) => {
+        Expr::List(_) => {
             panic!("Empty list");
+        }
+        Expr::Def { x: _, y: _ } => {
+            panic!("Def expression only allowed in top level list");
         }
     }
 }
