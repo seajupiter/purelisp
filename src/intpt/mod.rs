@@ -11,3 +11,6 @@ pub fn create_environment() -> Env {
     load_prelude(&mut env);
     env
 }
+
+// Re-export the REPL functions for convenient access
+pub use repl::{repl, start_repl_with_env};

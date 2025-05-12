@@ -18,9 +18,22 @@ pub fn repl() -> Result<()> {
     start_session(&mut rl, env)
 }
 
+/// Start the REPL with an existing environment
+/// Useful for when a file is loaded before the REPL starts
+pub fn start_repl_with_env(env: Env) -> Result<()> {
+    let mut rl = DefaultEditor::new()?;
+
+    #[cfg(feature = "with-file-history")]
+    if rl.load_history("history.txt").is_err() {
+        println!("No previous history.");
+    }
+
+    start_session(&mut rl, env)
+}
+
 fn start_session(rl: &mut DefaultEditor, mut env: Env) -> Result<()> {
     loop {
-        let readline = rl.readline("minilisp> ");
+        let readline = rl.readline("purelisp> ");
         match readline {
             Ok(line) => {
                 #[cfg(feature = "with-file-history")]
@@ -33,7 +46,7 @@ fn start_session(rl: &mut DefaultEditor, mut env: Env) -> Result<()> {
                 println!("Parsed form: {:?}", expr);
                 parse::print_expr(&expr);
                 println!("");
-                
+
                 if let Expr::Def { x, y } = expr {
                     let value = eval(*y.clone(), env.clone());
                     println!("Evaluation result of {:?}: {:?}", y, value);

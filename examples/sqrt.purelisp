@@ -1,0 +1,14 @@
+(defun newton_it_sqrt (y x n)
+    (if (= n 0)
+        x
+        (let (
+            (z (/ (+ x (/ y x)) 2.0)))
+            (newton_it_sqrt y z (- n 1)))))
+
+(defun sqrt (x)
+    (if (= x 0.0)
+        0.0
+        (newton_it_sqrt x 1.0 10)))
+
+(sqrt 100.0)
+(let ((x (sqrt 100.0))) (* x x))

@@ -273,16 +273,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe7db12097d22ec582439daf8618b8fdd1a7bef6270e9af3b1ebcd30893cf413"
 
 [[package]]
-name = "lisp-in-rust"
-version = "0.1.0"
-dependencies = [
- "lalrpop",
- "lalrpop-util 0.21.0",
- "regex",
- "rustyline",
-]
-
-[[package]]
 name = "lock_api"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -384,6 +374,16 @@ name = "precomputed-hash"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
+
+[[package]]
+name = "purelisp"
+version = "0.1.0"
+dependencies = [
+ "lalrpop",
+ "lalrpop-util 0.21.0",
+ "regex",
+ "rustyline",
+]
 
 [[package]]
 name = "radix_trie"
