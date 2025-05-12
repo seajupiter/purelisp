@@ -29,40 +29,20 @@ An interpreter and compiler for a lisp-style functional programming language imp
 
 Run the REPL:
 ```
-cargo run
+cargo run (--features with-file-history)
 ```
 
-To execute a Lisp file:
+To evaluate a Purelisp file:
 ```
-cargo run -- path/to/your/file.lisp
+cargo run -- path/to/your/file.purelisp
 ```
 
-## REPL Commands
-
-- Exit the REPL with `(exit)` or by pressing `Ctrl+D`
-- Evaluate expressions directly in the REPL
+To load a file and start the REPL: 
+```
+cargo run -- -l/--load path/to/your/file.purelisp
+```
 
 ## Project Structure
 
-- `src/ast.rs`: Abstract Syntax Tree definitions
-- `src/parse.rs`: Parsing utilities and implementation
-- `src/repl.rs`: REPL implementation
-- `src/minilisp.lalrpop`: LALRPOP grammar for the Lisp dialect
-- `src/main.rs`: Entry point and initialization
-
-## Development
-
-### Building with Features
-
-Enable file history for the REPL:
-```
-cargo build --features with-file-history
-```
-
-### Running Tests
-
-```
-cargo test
-```
 
 ## Future Improvements
