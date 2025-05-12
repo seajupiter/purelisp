@@ -1,0 +1,34 @@
+; Recursive factorial function
+(defun factorial (n)
+  (if (<= n 1)
+      1
+      (* n (factorial (- n 1)))))
+
+; Recursive fibonacci function
+(defun fibonacci (n)
+  (if (<= n 1)
+      n
+      (+ (fibonacci (- n 1)) (fibonacci (- n 2)))))
+
+; Example of mutual recursion
+(defun is-even (n)
+  (if (= n 0)
+      true
+      (is-odd (- n 1))))
+
+(defun is-odd (n)
+  (if (= n 0)
+      false
+      (is-even (- n 1))))
+
+; Recursive function to sum a list
+(defun sum-list (n)
+  (if (= n 0)
+      0
+      (+ n (sum-list (- n 1)))))
+
+(factorial 10)
+(fibonacci 10)
+(is-even 10)
+(is-odd 10)
+(sum-list 10)

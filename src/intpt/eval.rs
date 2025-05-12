@@ -177,5 +177,12 @@ pub fn eval(expr: Expr, env: Env) -> Value {
         Expr::Def { x: _, y: _ } => {
             panic!("Def expression only allowed in top level list");
         }
+        Expr::Defun {
+            name: _,
+            args: _,
+            body: _,
+        } => {
+            panic!("Defun expression only allowed in top level list");
+        }
     }
 }

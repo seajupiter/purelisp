@@ -28,7 +28,6 @@ pub fn load_prelude(env: &mut Env) {
             } else if args.len() != 2 {
                 panic!("Subtraction requires two arguments");
             } else {
-                println!("args: {:?}", args);
                 match (args[0].clone(), args[1].clone()) {
                     (Value::Int(x), Value::Int(y)) => Value::Int(x - y),
                     (Value::Float(x), Value::Float(y)) => Value::Float(x - y),

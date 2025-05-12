@@ -26,6 +26,11 @@ pub enum Expr {
         x: String,
         y: Box<Expr>,
     },
+    Defun {
+        name: String,
+        args: Vec<String>,
+        body: Box<Expr>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]

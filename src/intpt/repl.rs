@@ -1,13 +1,10 @@
-pub mod eval;
-pub mod prelude;
-
-use prelude::load_prelude;
-use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 
-use crate::ast::{Env, Expr};
-
+use crate::ast::{Env, Expr, Value};
+use crate::intpt::eval::eval;
 use crate::parse;
+use rustyline::error::ReadlineError;
+use std::collections::HashMap;
 
 pub fn repl() -> Result<()> {
     let mut rl = DefaultEditor::new()?;
@@ -17,9 +14,11 @@ pub fn repl() -> Result<()> {
         println!("No previous history.");
     }
 
-    let mut env = Env::new();
-    load_prelude(&mut env);
+    let env = crate::intpt::create_environment();
+    start_session(&mut rl, env)
+}
 
+fn start_session(rl: &mut DefaultEditor, mut env: Env) -> Result<()> {
     loop {
         let readline = rl.readline("minilisp> ");
         match readline {
@@ -34,12 +33,23 @@ pub fn repl() -> Result<()> {
                 println!("Parsed form: {:?}", expr);
                 parse::print_expr(&expr);
                 println!("");
+                
                 if let Expr::Def { x, y } = expr {
-                    let value = eval::eval(*y.clone(), env.clone());
+                    let value = eval(*y.clone(), env.clone());
                     println!("Evaluation result of {:?}: {:?}", y, value);
                     env.set(x, value);
+                } else if let Expr::Defun { name, args, body } = expr {
+                    // Create a closure for the function
+                    let closure = Value::Closure {
+                        params: args,
+                        body: *body,
+                        mappings: HashMap::new(),
+                    };
+                    // Bind the function name to the closure
+                    env.set(name.clone(), closure);
+                    println!("Function {} defined", name);
                 } else {
-                    let value = eval::eval(expr, env.clone());
+                    let value = eval(expr, env.clone());
                     println!("Evaluation result: {:?}", value);
                 }
             }

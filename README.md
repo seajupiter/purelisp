@@ -1,4 +1,4 @@
-# Lisp-in-Rust (MiniLisp)
+# Purelisp
 
 An interpreter and compiler for a lisp-style functional programming language implemented in Rust, created as a project for the PKU Compiler Principles (Honor Track) course.
 
@@ -40,7 +40,7 @@ cargo run -- path/to/your/file.lisp
 ## REPL Commands
 
 - Exit the REPL with `(exit)` or by pressing `Ctrl+D`
-- Execute standard Lisp expressions directly in the REPL
+- Evaluate expressions directly in the REPL
 
 ## Project Structure
 

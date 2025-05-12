@@ -1,5 +1,5 @@
 use crate::ast::Expr;
-use crate::minilisp;
+use crate::purelisp;
 
 fn advance_parse(expr: Expr) -> Expr {
     match expr {
@@ -66,6 +66,35 @@ fn advance_parse(expr: Expr) -> Expr {
                         } else {
                             panic!("First argument to def must be an identifier");
                         }
+                    } else if id == "defun" && transformed_list.len() == 4 {
+                        // Transform defun expression
+                        if let Expr::Id(func_name) = &transformed_list[1] {
+                            let mut args = Vec::new();
+
+                            // Check that the third element is a list of argument names
+                            if let Expr::List(arg_list) = &transformed_list[2] {
+                                // Extract argument names
+                                for arg in arg_list {
+                                    if let Expr::Id(arg_name) = arg {
+                                        args.push(arg_name.clone());
+                                    } else {
+                                        panic!("Arguments to defun must be identifiers");
+                                    }
+                                }
+                            } else {
+                                panic!("Second argument to defun must be a list of argument names");
+                            }
+
+                            let body = Box::new(transformed_list[3].clone());
+
+                            return Expr::Defun {
+                                name: func_name.clone(),
+                                args,
+                                body,
+                            };
+                        } else {
+                            panic!("First argument to defun must be an identifier");
+                        }
                     }
                 }
             }
@@ -79,7 +108,7 @@ fn advance_parse(expr: Expr) -> Expr {
 }
 
 pub fn parse(input: &str) -> Expr {
-    match minilisp::ExprParser::new().parse(&input) {
+    match purelisp::ExprParser::new().parse(&input) {
         Ok(expr) => advance_parse(expr),
         Err(_) => panic!("Parse error"),
     }
@@ -141,6 +170,18 @@ pub fn print_expr(expr: &Expr) {
         Expr::Def { x, y } => {
             print!("(def {} ", x);
             print_expr(y);
+            print!(")");
+        }
+        Expr::Defun { name, args, body } => {
+            print!("(defun {} (", name);
+            for (i, arg) in args.iter().enumerate() {
+                if i > 0 {
+                    print!(" ");
+                }
+                print!("{}", arg);
+            }
+            print!(") ");
+            print_expr(body);
             print!(")");
         }
     }
