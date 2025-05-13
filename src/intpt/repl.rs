@@ -43,9 +43,9 @@ fn start_session(rl: &mut DefaultEditor, mut env: Env) -> Result<()> {
                 }
 
                 let expr = parse::parse(&line);
-                println!("Parsed form: {:?}", expr);
-                parse::print_expr(&expr);
-                println!("");
+                // println!("Parsed form: {:?}", expr);
+                // println!("{}", expr);
+                // print!(" -> ");
 
                 if let Expr::Def { x, y } = expr {
                     let value = eval(*y.clone(), env.clone());
@@ -63,7 +63,7 @@ fn start_session(rl: &mut DefaultEditor, mut env: Env) -> Result<()> {
                     println!("Function {} defined", name);
                 } else {
                     let value = eval(expr, env.clone());
-                    println!("Evaluation result: {:?}", value);
+                    println!("{}", value);
                 }
             }
             Err(ReadlineError::Interrupted) => {

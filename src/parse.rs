@@ -152,100 +152,11 @@ fn advance_parse(expr: Expr) -> Expr {
 }
 
 pub fn parse(input: &str) -> Expr {
+    // println!("lalr parse: {}", input);
     match purelisp::ExprParser::new().parse(&input) {
         Ok(expr) => advance_parse(expr),
         Err(_) => panic!("Parse error"),
     }
 }
 
-pub fn print_expr(expr: &Expr) {
-    match expr {
-        Expr::Nil => print!("nil"),
-        Expr::Bool(b) => print!("{}", b),
-        Expr::Int(i) => print!("{}", i),
-        Expr::Float(f) => print!("{}", f),
-        Expr::Str(s) => print!("{}", s),
-        Expr::Id(id) => print!("{}", id),
-        Expr::Form(list) => {
-            print!("(");
-            for (i, e) in list.iter().enumerate() {
-                if i > 0 {
-                    print!(" ");
-                }
-                print_expr(e);
-            }
-            print!(")");
-        }
-        Expr::Let { bindings, body } => {
-            print!("(let (");
-            for (i, (id, e)) in bindings.iter().enumerate() {
-                if i > 0 {
-                    print!(" ");
-                }
-                print!("({} ", id);
-                print_expr(e);
-                print!(")");
-            }
-            print!(") ");
-            print_expr(body);
-            print!(")");
-        }
-        Expr::If { cond, then, else_ } => {
-            print!("(if ");
-            print_expr(cond);
-            print!(" ");
-            print_expr(then);
-            print!(" ");
-            print_expr(else_);
-            print!(")");
-        }
-        Expr::Fn { args, body } => {
-            print!("(fn (");
-            for (i, arg) in args.iter().enumerate() {
-                if i > 0 {
-                    print!(" ");
-                }
-                print!("{}", arg);
-            }
-            print!(") ");
-            print_expr(body);
-            print!(")");
-        }
-        Expr::Def { x, y } => {
-            print!("(def {} ", x);
-            print_expr(y);
-            print!(")");
-        }
-        Expr::Defun { name, args, body } => {
-            print!("(defun {} (", name);
-            for (i, arg) in args.iter().enumerate() {
-                if i > 0 {
-                    print!(" ");
-                }
-                print!("{}", arg);
-            }
-            print!(") ");
-            print_expr(body);
-            print!(")");
-        }
-        Expr::LetFun {
-            name,
-            args,
-            fun_body,
-            expr_body,
-        } => {
-            print!("(letfun ({} (", name);
-            for (i, arg) in args.iter().enumerate() {
-                if i > 0 {
-                    print!(" ");
-                }
-                print!("{}", arg);
-            }
-            print!(") ");
-            print_expr(fun_body);
-            print!(") ");
-            print_expr(expr_body);
-            print!(")");
-        }
-    }
-}
+

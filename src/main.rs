@@ -56,7 +56,7 @@ fn main() {
                     Ok(res) => {
                         println!("File processed successfully with result: ");
                         for value in res {
-                            println!("{:?}", value);
+                            println!("{}", value);
                         }
                     }
                     Err(e) => println!("Error processing file: {}", e),

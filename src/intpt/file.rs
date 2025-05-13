@@ -22,16 +22,25 @@ pub fn process_string(content: &str, env: &mut Env) -> io::Result<Vec<Value>> {
     let mut results = Vec::new();
     let mut buffer = String::new();
     let mut paren_count = 0;
-    
+
     // Process the content line by line
     for line in content.lines() {
-        let trimmed = line.trim();
-        
+        let mut trimmed = line.trim();
+
         // Skip empty lines and comments
-        if trimmed.is_empty() || trimmed.starts_with(';') {
+        if trimmed.is_empty() {
             continue;
         }
-        
+
+        // Process comment
+        if let Some(comment_pos) = trimmed.find(';') {
+            let code_part = trimmed[..comment_pos].trim();
+            if code_part.is_empty() {
+                continue; // The line is only a comment
+            }
+            trimmed = code_part;
+        }
+
         // Count parentheses to determine if an expression is complete
         for c in trimmed.chars() {
             if c == '(' {
@@ -40,21 +49,21 @@ pub fn process_string(content: &str, env: &mut Env) -> io::Result<Vec<Value>> {
                 paren_count -= 1;
             }
         }
-        
+
         // Append the current line to the buffer
         buffer.push_str(trimmed);
         buffer.push(' ');
-        
+
         // If we have a complete expression, evaluate it
         if paren_count == 0 && !buffer.trim().is_empty() {
             let expr = parse::parse(&buffer);
-            
+
             match expr {
                 Expr::Def { x, y } => {
                     let value = eval(*y.clone(), env.clone());
                     env.set(x, value.clone());
                     results.push(value);
-                },
+                }
                 Expr::Defun { name, args, body } => {
                     // Create a closure for the function
                     let closure = Value::Closure {
@@ -65,19 +74,19 @@ pub fn process_string(content: &str, env: &mut Env) -> io::Result<Vec<Value>> {
                     // Bind the function name to the closure
                     env.set(name, closure.clone());
                     results.push(closure);
-                },
+                }
                 _ => {
                     let value = eval(expr, env.clone());
                     results.push(value);
                 }
             }
-            
+
             // Reset the buffer and paren count for the next expression
             buffer.clear();
             paren_count = 0;
         }
     }
-    
+
     // If there's still an unprocessed expression, try to evaluate it
     if paren_count != 0 {
         return Err(io::Error::new(
@@ -89,6 +98,6 @@ pub fn process_string(content: &str, env: &mut Env) -> io::Result<Vec<Value>> {
         let value = eval(expr, env.clone());
         results.push(value);
     }
-    
+
     Ok(results)
 }

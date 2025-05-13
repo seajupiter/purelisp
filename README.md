@@ -4,11 +4,9 @@ A minimalist Lisp interpreter implemented in Rust, created as a project for the 
 
 ## Overview
 
-TODO
 
 ## Features
 
-TODO
 
 ## Getting Started
 
@@ -73,6 +71,7 @@ true false          ; Boolean values
 3.14                ; Float
 "hello world"       ; String
 identifier          ; Variable identifiers
+(1 2 3)             ; List
 ```
 
 ### Function Calls
@@ -191,6 +190,17 @@ PureLisp provides several built-in functions for common operations:
   (add5 10))        ; Returns 15
 ```
 
+#### List Operations
+```
+(list 1 2 3)                ; Creates a list (1 2 3)
+(car (list 1 2 3))          ; Returns 1 (first element)
+(cdr (list 1 2 3))          ; Returns (2 3) (rest of the list)
+(cons 0 (list 1 2 3))       ; Returns (0 1 2 3) (prepends an element)
+(length (list 1 2 3))       ; Returns 3 (length of the list)
+(nth 1 (list 1 2 3))        ; Returns 2 (0-indexed element access)
+(append (list 1 2) (list 3)) ; Returns (1 2 3) (concatenates lists)
+```
+
 #### Comments
 ```
 ; Single-line comments start with a semicolon
@@ -225,7 +235,47 @@ Functions in PureLisp are first-class values:
 
 PureLisp supports recursion through the `letfun` special form, which binds a function that can call itself. Recursive functions defined with `letfun` have proper lexical scoping, allowing them to reference variables from their enclosing environment.
 
-## Comprehensive Example
+## Examples
+
+### List Processing Example
+
+Here's an example demonstrating the use of lists and list processing functions:
+
+```
+; Create a list of numbers
+(def numbers (list 1 2 3 4 5))
+
+; Sum all elements in a list recursively
+(letfun (sum-list (lst)
+         (if (= (length lst) 0)
+             0
+             (+ (car lst) (sum-list (cdr lst)))))
+  (sum-list numbers))  ; Returns 15
+
+; Map a function over a list to create a new list
+(letfun (map (f lst)
+         (if (= (length lst) 0)
+             (list)
+             (cons (f (car lst)) (map f (cdr lst)))))
+  (map (fn (x) (* x 2)) numbers))  ; Returns (2 4 6 8 10)
+
+; Filter elements from a list
+(letfun (filter (pred lst)
+         (if (= (length lst) 0)
+             (list)
+             (if (pred (car lst))
+                 (cons (car lst) (filter pred (cdr lst)))
+                 (filter pred (cdr lst)))))
+  (filter (fn (x) (> x 2)) numbers))  ; Returns (3 4 5)
+```
+
+This example demonstrates:
+- Creating and manipulating lists
+- Implementing higher-order functions for lists (map, filter)
+- Recursive list processing
+- Common list operations (car, cdr, cons, length)
+
+### Comprehensive Example
 
 Here's a more comprehensive example showing various PureLisp features:
 
