@@ -1,0 +1,45 @@
+; List operations test file
+
+; Create lists using list function
+(def empty-list (list))
+(def numbers (list 1 2 3 4 5))
+(def mixed (list 1 "hello" true 3.14))
+(def nested (list 1 (list 2 3) 4))
+
+; Test basic list operations
+(def first-element (car numbers))  ; Should be 1
+(def rest-elements (cdr numbers))  ; Should be (2 3 4 5)
+(def list-length (length numbers)) ; Should be 5
+(def third-element (nth 2 numbers)) ; Should be 3 (0-indexed)
+
+; Test cons operation
+(def new-list (cons 0 numbers)) ; Should be (0 1 2 3 4 5)
+
+; Test append operation
+(def combined-list (append numbers (list 6 7 8))) ; Should be (1 2 3 4 5 6 7 8)
+
+; Test nested lists
+(def nested-element (car (nth 1 nested))) ; Should be 2
+
+; Test list manipulation in functions
+(letfun (sum-list (lst)
+         (if (= (length lst) 0)
+             0
+             (+ (car lst) (sum-list (cdr lst)))))
+  (sum-list numbers)) ; Should be 15 (1+2+3+4+5)
+
+; Test mapping a function over a list
+(letfun (map (f lst)
+         (if (= (length lst) 0)
+             (list)
+             (cons (f (car lst)) (map f (cdr lst)))))
+  (map (fn (x) (* x 2)) numbers)) ; Should be (2 4 6 8 10)
+
+; Test filtering a list
+(letfun (filter (pred lst)
+         (if (= (length lst) 0)
+             (list)
+             (if (pred (car lst))
+                 (cons (car lst) (filter pred (cdr lst)))
+                 (filter pred (cdr lst)))))
+  (filter (fn (x) (> x 2)) numbers)) ; Should be (3 4 5)
