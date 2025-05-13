@@ -286,26 +286,26 @@ Here's a more comprehensive example showing various PureLisp features:
               x
               (f (apply-n-times f (- n 1) x))))
 
-  ; Define a list of operations to perform
-  (let ((double (fn (x) (* x 2)))
+    ; Define a list of operations to perform
+    (let ((double (fn (x) (* x 2)))
         (add3 (fn (x) (+ x 3)))
         (square (fn (x) (* x x))))
 
-    ; Demonstrate function composition
-    (let ((result1 (apply-n-times double 3 2))     ; 2 -> 4 -> 8 -> 16
-          (result2 (apply-n-times add3 2 5))       ; 5 -> 8 -> 11
-          (result3 (apply-n-times square 2 3)))    ; 3 -> 9 -> 81
+        ; Demonstrate function composition
+        (let ((result1 (apply-n-times double 3 2))     ; 2 -> 4 -> 8 -> 16
+            (result2 (apply-n-times add3 2 5))       ; 5 -> 8 -> 11
+            (result3 (apply-n-times square 2 3)))    ; 3 -> 9 -> 81
 
-      ; Create a combined operation using function composition
-      (let ((combined-op (fn (x)
-                           (double (square (add3 x))))))
+            ; Create a combined operation using function composition
+            (let ((combined-op (fn (x)
+                            (double (square (add3 x))))))
 
-        ; Compare direct application with apply-n-times
-        (let ((direct-result (combined-op 4))                ; 4 -> 7 -> 49 -> 98
-              (composed-result (apply-n-times combined-op 2 4))) ; 4 -> 98 -> 203
+            ; Compare direct application with apply-n-times
+            (let ((direct-result (combined-op 4))                ; 4 -> 7 -> 49 -> 98
+                (composed-result (apply-n-times combined-op 2 4))) ; 4 -> 98 -> 20402
 
-          ; Return a list of all results
-          (list result1 result2 result3 direct-result composed-result))))))
+                ; Return a list of all results
+                (list result1 result2 result3 direct-result composed-result))))))
 ```
 
 This example demonstrates:
