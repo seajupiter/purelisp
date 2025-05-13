@@ -8,7 +8,7 @@ pub enum Expr {
     Float(f64),
     Str(String),
     Id(String),
-    List(Vec<Expr>),
+    Form(Vec<Expr>),
     Let {
         bindings: Vec<(String, Expr)>,
         body: Box<Expr>,
@@ -30,6 +30,12 @@ pub enum Expr {
         name: String,
         args: Vec<String>,
         body: Box<Expr>,
+    },
+    LetFun {
+        name: String,
+        args: Vec<String>,
+        fun_body: Box<Expr>,
+        expr_body: Box<Expr>,
     },
 }
 
@@ -83,6 +89,15 @@ impl Env {
         }
         None
     }
+
+    // pub fn get_mut(&mut self, key: &str) -> Option<&mut Value> {
+    //     for table in self.tables.iter_mut().rev() {
+    //         if let Some(value) = table.get_mut(key) {
+    //             return Some(value);
+    //         }
+    //     }
+    //     None
+    // }
 
     pub fn push(&mut self, map: HashMap<String, Value>) {
         self.tables.push(map);

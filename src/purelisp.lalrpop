@@ -19,7 +19,7 @@ pub Expr: Expr = {
     <float: Float> => Expr::Float(float),
     <string: StringLit> => Expr::Str(string),
     <id: Identifier> => Expr::Id(id),
-    "(" <list: List> ")" => Expr::List(list),
+    "(" <form: Form> ")" => Expr::Form(form),
 };
 
 Bool: bool = {
@@ -43,6 +43,6 @@ Identifier: String = {
     <id: r#"[^\s\[\]{}('\"`,;)]*"#> => id.to_string(),
 };
 
-List: Vec<Expr> = {
+Form: Vec<Expr> = {
     <expr: Expr*> => expr,
 }
