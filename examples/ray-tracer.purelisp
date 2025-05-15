@@ -1,0 +1,33 @@
+(defun mag (x y z)
+  (sqrt (+ (sq x) (+ (sq y) (sq z)))))
+
+(defun unit-vector (x y z)
+  (let ((d (mag x y z)))
+    (list (/ x d) (/ y d) (/ z d))))
+
+(defun x (p)
+    (nth 0 p))
+
+(defun y (p)
+    (nth 1 p))
+
+(defun z (p)
+    (nth 2 p))
+
+(defun distance (p1 p2)
+  (mag (- (x p1) (x p2))
+       (- (y p1) (y p2))
+       (- (z p1) (z p2))))
+
+(defun min (a b)
+  (if (< a b)
+      a
+      b))
+
+(defun minroot (a b c)
+  (if (= a 0.0)
+      (/ (- c) b)
+      (let ((disc (- (sq b) (* 4.0 (* a c)))))
+          (let ((discrt (sqrt disc)))
+            (min (/ (+ (- 0.0 b) discrt) (* 2.0 a))
+                 (/ (- (- 0.0 b) discrt) (* 2.0 a)))))))

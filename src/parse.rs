@@ -40,6 +40,14 @@ fn advance_parse(expr: Expr) -> Expr {
                         let else_ = Box::new(transformed_form[3].clone());
 
                         return Expr::If { cond, then, else_ };
+                    } else if id == "and" {
+                        // Transform n-ary and expression
+                        let exprs = transformed_form[1..].to_vec();
+                        return Expr::And(exprs);
+                    } else if id == "or" {
+                        // Transform n-ary or expression
+                        let exprs = transformed_form[1..].to_vec();
+                        return Expr::Or(exprs);
                     } else if id == "fn" && transformed_form.len() >= 3 {
                         // Transform fn (lambda function) expression
                         let mut args = Vec::new();
@@ -158,5 +166,3 @@ pub fn parse(input: &str) -> Expr {
         Err(_) => panic!("Parse error"),
     }
 }
-
-

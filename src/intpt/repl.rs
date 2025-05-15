@@ -6,38 +6,39 @@ use crate::parse;
 use rustyline::error::ReadlineError;
 use std::collections::HashMap;
 
-pub fn repl() -> Result<()> {
+pub fn repl(use_history: bool) -> Result<()> {
     let mut rl = DefaultEditor::new()?;
 
-    #[cfg(feature = "with-file-history")]
-    if rl.load_history("history.txt").is_err() {
-        println!("No previous history.");
+    if use_history {
+        if rl.load_history("history.txt").is_err() {
+            println!("No previous history.");
+        }
     }
 
     let env = crate::intpt::create_environment();
-    start_session(&mut rl, env)
+    start_session(&mut rl, env, use_history)
 }
 
 /// Start the REPL with an existing environment
 /// Useful for when a file is loaded before the REPL starts
-pub fn start_repl_with_env(env: Env) -> Result<()> {
+pub fn start_repl_with_env(env: Env, use_history: bool) -> Result<()> {
     let mut rl = DefaultEditor::new()?;
 
-    #[cfg(feature = "with-file-history")]
-    if rl.load_history("history.txt").is_err() {
-        println!("No previous history.");
+    if use_history {
+        if rl.load_history("history.txt").is_err() {
+            println!("No previous history.");
+        }
     }
 
-    start_session(&mut rl, env)
+    start_session(&mut rl, env, use_history)
 }
 
-fn start_session(rl: &mut DefaultEditor, mut env: Env) -> Result<()> {
+fn start_session(rl: &mut DefaultEditor, mut env: Env, use_history: bool) -> Result<()> {
     loop {
         let readline = rl.readline("purelisp> ");
         match readline {
             Ok(line) => {
-                #[cfg(feature = "with-file-history")]
-                {
+                if use_history {
                     rl.add_history_entry(line.as_str())?;
                     rl.save_history("history.txt")?;
                 }

@@ -12,12 +12,14 @@ fn collect_free_vars(
     env: &Env,
 ) {
     match expr {
-        Expr::Id(id) if !args.contains(id) && func_name.map_or(true, |name| id != name) => {
-            if !free_vars.contains_key(id) {
-                if let Some(value) = env.get(id) {
-                    free_vars.insert(id.clone(), value.clone());
-                } else {
-                    panic!("Undefined identifier in closure: {}", id);
+        Expr::Id(id) => {
+            if !args.contains(id) && func_name.map_or(true, |name| id != name) {
+                if !free_vars.contains_key(id) {
+                    if let Some(value) = env.get(id) {
+                        free_vars.insert(id.clone(), value.clone());
+                    } else {
+                        panic!("Undefined identifier in closure: {}", id);
+                    }
                 }
             }
         }
@@ -83,7 +85,16 @@ fn collect_free_vars(
                 collect_free_vars(expr, args, func_name, free_vars, env);
             }
         }
-        // For other expression types, no free variables to capture
+        Expr::And(exprs) => {
+            for expr in exprs {
+                collect_free_vars(expr, args, func_name, free_vars, env);
+            }
+        }
+        Expr::Or(exprs) => {
+            for expr in exprs {
+                collect_free_vars(expr, args, func_name, free_vars, env);
+            }
+        }
         _ => {}
     }
 }
@@ -103,6 +114,30 @@ pub fn eval(expr: Expr, env: Env) -> Value {
             } else {
                 panic!("Undefined identifier: {}", id);
             }
+        }
+        Expr::And(exprs) => {
+            // n-ary short-circuit AND
+            for expr in exprs {
+                let val = eval(expr.clone(), env.clone());
+                match val {
+                    Value::Bool(false) => return Value::Bool(false),
+                    Value::Bool(true) => continue,
+                    _ => panic!("All arguments to 'and' must be boolean"),
+                }
+            }
+            Value::Bool(true)
+        }
+        Expr::Or(exprs) => {
+            // n-ary short-circuit OR
+            for expr in exprs {
+                let val = eval(expr.clone(), env.clone());
+                match val {
+                    Value::Bool(true) => return Value::Bool(true),
+                    Value::Bool(false) => continue,
+                    _ => panic!("All arguments to 'or' must be boolean"),
+                }
+            }
+            Value::Bool(false)
         }
         Expr::Let { bindings, body } => {
             // Create a new environment by extending the current one
@@ -140,63 +175,65 @@ pub fn eval(expr: Expr, env: Env) -> Value {
                 },
             }
         }
-        Expr::Form(form) if !form.is_empty() => {
-            let vals: Vec<Value> = form.iter().map(|e| eval(e.clone(), env.clone())).collect();
-            let f = &vals[0];
-            match f {
-                Value::Func(func) => {
-                    let args = vals[1..].to_vec();
-                    // println!("Calling function {:?} on args {:?}", f, args);
-                    func(args)
-                }
-                Value::Closure {
-                    params,
-                    body,
-                    mappings,
-                } => {
-                    let args = vals[1..].to_vec();
+        Expr::Form(form) => {
+            if form.is_empty() {
+                panic!("Empty form");
+            } else {
+                let vals: Vec<Value> = form.iter().map(|e| eval(e.clone(), env.clone())).collect();
+                let f = &vals[0];
+                match f {
+                    Value::Func(func) => {
+                        let args = vals[1..].to_vec();
+                        // println!("Calling function {:?} on args {:?}", f, args);
+                        func(args)
+                    }
+                    Value::Closure {
+                        params,
+                        body,
+                        mappings,
+                    } => {
+                        let args = vals[1..].to_vec();
 
-                    if args.len() > params.len() {
-                        panic!(
-                            "Too many arguments for function {:?}",
-                            Value::Closure {
-                                params: params.clone(),
-                                body: body.clone(),
-                                mappings: mappings.clone()
+                        if args.len() > params.len() {
+                            panic!(
+                                "Too many arguments for function {:?}",
+                                Value::Closure {
+                                    params: params.clone(),
+                                    body: body.clone(),
+                                    mappings: mappings.clone()
+                                }
+                            );
+                        }
+
+                        // Map arguments to parameters
+                        let mut new_mappings = mappings.clone();
+                        for (i, param) in params.iter().enumerate() {
+                            if i < args.len() {
+                                new_mappings.insert(param.clone(), args[i].clone());
+                            } else {
+                                break;
                             }
-                        );
-                    }
+                        }
 
-                    // Map arguments to parameters
-                    let mut new_mappings = mappings.clone();
-                    for (i, param) in params.iter().enumerate() {
-                        if i < args.len() {
-                            new_mappings.insert(param.clone(), args[i].clone());
+                        if args.len() == params.len() {
+                            let mut newenv = env.clone();
+                            newenv.push(new_mappings);
+                            eval(body.clone(), newenv)
                         } else {
-                            break;
+                            // Partial application
+                            let remaining_params =
+                                params.iter().skip(args.len()).cloned().collect();
+
+                            Value::Closure {
+                                params: remaining_params,
+                                body: body.clone(),
+                                mappings: new_mappings,
+                            }
                         }
                     }
-
-                    if args.len() == params.len() {
-                        let mut newenv = env.clone();
-                        newenv.push(new_mappings);
-                        eval(body.clone(), newenv)
-                    } else {
-                        // Partial application
-                        let remaining_params = params.iter().skip(args.len()).cloned().collect();
-
-                        Value::Closure {
-                            params: remaining_params,
-                            body: body.clone(),
-                            mappings: new_mappings,
-                        }
-                    }
+                    _ => panic!("Type error: {:?}", f),
                 }
-                _ => panic!("Type error: {:?}", f),
             }
-        }
-        Expr::Form(_) => {
-            panic!("Empty form");
         }
         Expr::Def { x: _, y: _ } => {
             panic!("Def expression only allowed in top level form");

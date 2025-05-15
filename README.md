@@ -1,11 +1,16 @@
 # PureLisp
 
-A minimalist Lisp interpreter implemented in Rust, created as a project for the PKU Compiler Principles (Honor Track) course.
+A minimalist Lisp interpreter and compiler implemented in Rust, created as a project for the PKU Compiler Principles (Honor Track) course.
 
 ## Overview
 
+PureLisp is a simple yet powerful Lisp-like language with both an interpreter and a compiler. The language supports key functional programming features like closures, higher-order functions, recursion, and more.
 
 ## Features
+
+- Interactive REPL for quick experimentation
+- File-based evaluation for larger programs
+- Compiler for bytecode generation
 
 
 ## Getting Started
@@ -24,24 +29,23 @@ A minimalist Lisp interpreter implemented in Rust, created as a project for the 
 
 2. Build the project:
    ```
-   cargo build --release
+   cargo build
    ```
 
 ### Usage
 
-Run the REPL:
 ```
-cargo run (--features with-file-history)
-```
-
-To evaluate a Purelisp file:
-```
-cargo run -- path/to/your/file.purelisp
+cargo run (-- <optional arguments>)
 ```
 
-To load a file and start the REPL:
+This basic command will start the PureLisp REPL (Read-Eval-Print Loop), where you can enter PureLisp expressions interactively.
+It can take the following command-line options:
+- `-l` or `--load`: Load a PureLisp file and start the REPL
+- `--history`: turn on the history loading/saving feature
+
+You can also directly evaluate a purelisp source code file by running:
 ```
-cargo run -- -l/--load path/to/your/file.purelisp
+cargo run -- <filename>
 ```
 
 ## Project Structure
@@ -51,11 +55,15 @@ The PureLisp project is organized with a clean separation of concerns:
 - `src/ast.rs`: Defines the abstract syntax tree and environment structures
 - `src/parse.rs`: Handles parsing of PureLisp code into AST
 - `src/purelisp.lalrpop`: LALRPOP grammar definition for the language
-- `src/intpt/`: Interpreter implementation
+- `src/intpt/(mod.rs)`: Interpreter implementation
   - `eval.rs`: Core evaluation logic
-  - `prelude.rs`: Built-in functions and operators
+  - `prelude/`: Built-in functions and operators
   - `repl.rs`: Read-Eval-Print Loop implementation
   - `file.rs`: File processing utilities
+- `src/compl/(mod.rs)`: Compiler implementation
+  - `kform.rs`: K-normal form IR definitions
+  - `transform.rs`: AST to K-normal form transformation
+  - `codegen.rs`: Bytecode generation from K-normal form
 - `examples/`: Example PureLisp programs demonstrating language features
 
 ## Syntax Specification
@@ -102,6 +110,14 @@ Conditional branching:
     else-expr)
 ```
 
+#### Logical Operations
+Short-circuit logical operations:
+
+```
+(and expr1 expr2 ...)  ; Returns true if all expressions are true
+(or expr1 expr2 ...)   ; Returns true if any expression is true
+```
+
 #### Lambda Functions
 Anonymous function creation:
 
@@ -132,25 +148,6 @@ Global function definition (only allowed at the top level):
 ```
 (defun function-name (arg1 arg2 ...)
   function-body)
-```
-
-### Examples
-
-Factorial function using recursion:
-```
-(letfun (factorial (n)
-         (if (= n 0)
-             1
-             (* n (factorial (- n 1)))))
-  (factorial 5))  ; Returns 120
-```
-
-Nested function definitions:
-```
-(letfun (outer (x)
-         (letfun (inner (y) (+ x y))
-           (inner (+ x 1))))
-  (outer 5))  ; Returns 11
 ```
 
 ### Built-in Functions and Operators
@@ -237,83 +234,4 @@ PureLisp supports recursion through the `letfun` special form, which binds a fun
 
 ## Examples
 
-### List Processing Example
-
-Here's an example demonstrating the use of lists and list processing functions:
-
-```
-; Create a list of numbers
-(def numbers (list 1 2 3 4 5))
-
-; Sum all elements in a list recursively
-(letfun (sum-list (lst)
-         (if (= (length lst) 0)
-             0
-             (+ (car lst) (sum-list (cdr lst)))))
-  (sum-list numbers))  ; Returns 15
-
-; Map a function over a list to create a new list
-(letfun (map (f lst)
-         (if (= (length lst) 0)
-             (list)
-             (cons (f (car lst)) (map f (cdr lst)))))
-  (map (fn (x) (* x 2)) numbers))  ; Returns (2 4 6 8 10)
-
-; Filter elements from a list
-(letfun (filter (pred lst)
-         (if (= (length lst) 0)
-             (list)
-             (if (pred (car lst))
-                 (cons (car lst) (filter pred (cdr lst)))
-                 (filter pred (cdr lst)))))
-  (filter (fn (x) (> x 2)) numbers))  ; Returns (3 4 5)
-```
-
-This example demonstrates:
-- Creating and manipulating lists
-- Implementing higher-order functions for lists (map, filter)
-- Recursive list processing
-- Common list operations (car, cdr, cons, length)
-
-### Comprehensive Example
-
-Here's a more comprehensive example showing various PureLisp features:
-
-```
-; Define a higher-order function that applies a function n times
-(letfun (apply-n-times (f n x)
-          (if (= n 0)
-              x
-              (f (apply-n-times f (- n 1) x))))
-
-    ; Define a list of operations to perform
-    (let ((double (fn (x) (* x 2)))
-        (add3 (fn (x) (+ x 3)))
-        (square (fn (x) (* x x))))
-
-        ; Demonstrate function composition
-        (let ((result1 (apply-n-times double 3 2))     ; 2 -> 4 -> 8 -> 16
-            (result2 (apply-n-times add3 2 5))       ; 5 -> 8 -> 11
-            (result3 (apply-n-times square 2 3)))    ; 3 -> 9 -> 81
-
-            ; Create a combined operation using function composition
-            (let ((combined-op (fn (x)
-                            (double (square (add3 x))))))
-
-            ; Compare direct application with apply-n-times
-            (let ((direct-result (combined-op 4))                ; 4 -> 7 -> 49 -> 98
-                (composed-result (apply-n-times combined-op 2 4))) ; 4 -> 98 -> 20402
-
-                ; Return a list of all results
-                (list result1 result2 result3 direct-result composed-result))))))
-```
-
-This example demonstrates:
-- Higher-order functions (functions that take functions as arguments)
-- Anonymous functions with `fn`
-- Lexical closures
-- Function composition
-- Recursive function definitions with `letfun`
-- Nested `let` expressions for creating local bindings
-
-## Future Improvements
+Please take a look at the `examples/` directory for various PureLisp programs demonstrating the language features.

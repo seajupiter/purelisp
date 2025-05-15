@@ -10,6 +10,3 @@ lalrpop = "0.22.1"
 rustyline = "15.0.0"
 regex = "1.11.1"
 lalrpop-util = { version = "0.21.0", features = ["lexer", "unicode"] }
-
-[features]
-with-file-history = []

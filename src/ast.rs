@@ -18,6 +18,8 @@ pub enum Expr {
         then: Box<Expr>,
         else_: Box<Expr>,
     },
+    And(Vec<Expr>),
+    Or(Vec<Expr>),
     Fn {
         args: Vec<String>,
         body: Box<Expr>,
@@ -97,6 +99,20 @@ impl fmt::Display for Expr {
                     write!(f, "{}", arg)?;
                 }
                 write!(f, ") {})", body)
+            }
+            Expr::And(exprs) => {
+                write!(f, "(and")?;
+                for e in exprs {
+                    write!(f, " {}", e)?;
+                }
+                write!(f, ")")
+            }
+            Expr::Or(exprs) => {
+                write!(f, "(or")?;
+                for e in exprs {
+                    write!(f, " {}", e)?;
+                }
+                write!(f, ")")
             }
             Expr::Def { x, y } => {
                 write!(f, "(def {} {})", x, y)
