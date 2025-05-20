@@ -4,6 +4,7 @@ pub mod compl;
 pub mod formatter;
 pub mod intpt;
 pub mod parse;
+pub mod read;
 
 // Re-export the lalrpop module
 use lalrpop_util::lalrpop_mod;
@@ -15,3 +16,4 @@ pub use formatter::{PrettyFormatter, pretty_format};
 pub use intpt::create_environment;
 pub use intpt::eval::eval;
 pub use parse::parse;
+pub use read::{read_file, read_string};
