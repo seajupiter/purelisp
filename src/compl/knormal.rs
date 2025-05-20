@@ -11,13 +11,13 @@ fn is_atom(expr: &Expr) -> bool {
     }
 }
 
-pub fn k_normalize(expr: Expr, namer: &mut NameGenerator) -> Expr {
+fn k_normal(expr: Expr, namer: &mut NameGenerator) -> Expr {
     match expr {
         Expr::Nil | Expr::Bool(_) | Expr::Int(_) | Expr::Float(_) | Expr::Str(_) | Expr::Id(_) => {
             expr
         }
         Expr::Form(form) => {
-            let mut kform: Vec<Expr> = form.iter().map(|e| k_normalize(e.clone(), namer)).collect();
+            let mut kform: Vec<Expr> = form.iter().map(|e| k_normal(e.clone(), namer)).collect();
             let mut bindings = Vec::new();
             for e in kform.iter_mut() {
                 if !is_atom(e) {
@@ -38,17 +38,17 @@ pub fn k_normalize(expr: Expr, namer: &mut NameGenerator) -> Expr {
         Expr::Let { bindings, body } => {
             let mut new_bindings = Vec::new();
             for (name, expr) in bindings {
-                new_bindings.push((name.clone(), k_normalize(expr, namer)));
+                new_bindings.push((name.clone(), k_normal(expr, namer)));
             }
             Expr::Let {
                 bindings: new_bindings,
-                body: Box::new(k_normalize(*body, namer)),
+                body: Box::new(k_normal(*body, namer)),
             }
         }
         Expr::If { cond, then, else_ } => {
-            let cond = k_normalize(*cond, namer);
-            let then = k_normalize(*then, namer);
-            let else_ = k_normalize(*else_, namer);
+            let cond = k_normal(*cond, namer);
+            let then = k_normal(*then, namer);
+            let else_ = k_normal(*else_, namer);
             if is_atom(&cond) {
                 Expr::If {
                     cond: Box::new(cond),
@@ -65,7 +65,7 @@ pub fn k_normalize(expr: Expr, namer: &mut NameGenerator) -> Expr {
                         else_: Box::new(else_),
                     }),
                 };
-                k_normalize(let_binding, namer)
+                k_normal(let_binding, namer)
             }
         }
         Expr::And(exprs) => {
@@ -82,7 +82,7 @@ pub fn k_normalize(expr: Expr, namer: &mut NameGenerator) -> Expr {
                         else_: Box::new(Expr::Bool(false)),
                     };
                 }
-                k_normalize(result, namer)
+                k_normal(result, namer)
             }
         }
         Expr::Or(exprs) => {
@@ -99,21 +99,21 @@ pub fn k_normalize(expr: Expr, namer: &mut NameGenerator) -> Expr {
                         else_: Box::new(result),
                     };
                 }
-                k_normalize(result, namer)
+                k_normal(result, namer)
             }
         }
         Expr::Fn { args, body } => {
             // Normalize the function body
             Expr::Fn {
                 args,
-                body: Box::new(k_normalize(*body, namer)),
+                body: Box::new(k_normal(*body, namer)),
             }
         }
         Expr::Def { x, y } => {
             // Normalize the definition's value
             Expr::Def {
                 x,
-                y: Box::new(k_normalize(*y, namer)),
+                y: Box::new(k_normal(*y, namer)),
             }
         }
         Expr::Defun { name, args, body } => {
@@ -121,7 +121,7 @@ pub fn k_normalize(expr: Expr, namer: &mut NameGenerator) -> Expr {
             Expr::Defun {
                 name,
                 args,
-                body: Box::new(k_normalize(*body, namer)),
+                body: Box::new(k_normal(*body, namer)),
             }
         }
         Expr::LetFun {
@@ -134,16 +134,37 @@ pub fn k_normalize(expr: Expr, namer: &mut NameGenerator) -> Expr {
             Expr::LetFun {
                 name,
                 args,
-                fun_body: Box::new(k_normalize(*fun_body, namer)),
-                expr_body: Box::new(k_normalize(*expr_body, namer)),
+                fun_body: Box::new(k_normal(*fun_body, namer)),
+                expr_body: Box::new(k_normal(*expr_body, namer)),
             }
         }
     }
 }
 
+fn expand_let(expr: Expr) -> Expr {
+    match expr {
+        Expr::Let { bindings, body } => {
+            let mut new_body = *body;
+            for (name, expr) in bindings.into_iter().rev() {
+                new_body = Expr::Let {
+                    bindings: vec![(name, expr)],
+                    body: Box::new(new_body),
+                };
+            }
+            new_body
+        }
+        _ => expr,
+    }
+}
+
+pub fn k_normalize(expr: Expr, namer: &mut NameGenerator) -> Expr {
+    let k_normal_expr = k_normal(expr, namer);
+    expand_let(k_normal_expr)
+}
+
 #[cfg(test)]
 mod test {
-    use crate::parse;
+    use crate::{parse, pretty_format};
 
     use super::*;
 
@@ -151,35 +172,35 @@ mod test {
     fn knormal_test_funcall() {
         let expr = parse("(+ (+ 1 2) (* 3 4))");
         let kexpr = k_normalize(expr.clone(), &mut NameGenerator::new("t"));
-        println!("original: {}", expr);
-        println!("k-normalized: {}", kexpr);
+        println!("original: {}", pretty_format(&expr));
+        println!("k-normalized: {}", pretty_format(&kexpr));
     }
     #[test]
     fn knormal_test_if() {
         let expr = parse("(if (> 1 2) (+ 3 4) (* 5 6))");
         let kexpr = k_normalize(expr.clone(), &mut NameGenerator::new("t"));
-        println!("original: {}", expr);
-        println!("k-normalized: {}", kexpr);
+        println!("original: {}", pretty_format(&expr));
+        println!("k-normalized: {}", pretty_format(&kexpr));
     }
     #[test]
     fn knormal_test_and() {
         let expr = parse("(and (> 1 2) (< 3 4))");
         let kexpr = k_normalize(expr.clone(), &mut NameGenerator::new("t"));
-        println!("original: {}", expr);
-        println!("k-normalized: {}", kexpr);
+        println!("original: {}", pretty_format(&expr));
+        println!("k-normalized: {}", pretty_format(&kexpr));
     }
     #[test]
     fn knormal_test_or() {
         let expr = parse("(or (> 1 2) (< 3 4))");
         let kexpr = k_normalize(expr.clone(), &mut NameGenerator::new("t"));
-        println!("original: {}", expr);
-        println!("k-normalized: {}", kexpr);
+        println!("original: {}", pretty_format(&expr));
+        println!("k-normalized: {}", pretty_format(&kexpr));
     }
     #[test]
     fn knormal_test_letfun() {
         let expr = parse("(letfun (f (x) (+ (* x x) x)) (f (+ 1 (* 2 3))))");
         let kexpr = k_normalize(expr.clone(), &mut NameGenerator::new("t"));
-        println!("original: {}", expr);
-        println!("k-normalized: {}", kexpr);
+        println!("original: {}", pretty_format(&expr));
+        println!("k-normalized: {}", pretty_format(&kexpr));
     }
 }
