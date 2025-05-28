@@ -1,4 +1,5 @@
-use crate::ast::{Env, Value};
+use crate::ast::Value;
+use crate::intpt::Env;
 
 pub fn load_basics(env: &mut Env) {
     env.set(

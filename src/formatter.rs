@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::Expr;
 
 pub struct PrettyFormatter {
@@ -58,6 +60,13 @@ impl PrettyFormatter {
                 fun_body,
                 expr_body,
             } => self.format_letfun(name, args, fun_body, expr_body, current_indent),
+            Expr::DefClos {
+                name,
+                freevars,
+                args,
+                body,
+            } => self.format_defclos(name, freevars, args, body, current_indent),
+            Expr::Clos { name, mappings } => self.format_clos(name, mappings),
         }
     }
 
@@ -331,6 +340,42 @@ impl PrettyFormatter {
             self.format_expr(expr_body, next_indent),
             indent
         )
+    }
+
+    fn format_defclos(
+        &self,
+        name: &str,
+        freevars: &[String],
+        args: &[String],
+        body: &Expr,
+        current_indent: usize,
+    ) -> String {
+        let next_indent = current_indent + 1;
+        let indent = self.indent_str(current_indent);
+        let inner_indent = self.indent_str(next_indent);
+
+        let freevars_str = format!("({})", freevars.join(" "));
+        let args_str = format!("({})", args.join(" "));
+
+        format!(
+            "(defclos {} {} {}\n{}{}\n{})",
+            name,
+            freevars_str,
+            args_str,
+            inner_indent,
+            self.format_expr(body, next_indent),
+            indent
+        )
+    }
+
+    fn format_clos(&self, name: &str, mappings: &HashMap<String, Expr>) -> String {
+        let mappings_str = mappings
+            .iter()
+            .map(|(key, value)| format!("({} {})", key, self.format_expr(value, 0)))
+            .collect::<Vec<_>>()
+            .join(" ");
+
+        format!("(clos {} ({}))", name, mappings_str)
     }
 }
 

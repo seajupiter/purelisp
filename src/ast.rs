@@ -39,6 +39,16 @@ pub enum Expr {
         fun_body: Box<Expr>,
         expr_body: Box<Expr>,
     },
+    DefClos {
+        name: String,
+        freevars: Vec<String>,
+        args: Vec<String>,
+        body: Box<Expr>,
+    },
+    Clos {
+        name: String,
+        mappings: HashMap<String, Expr>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -142,6 +152,38 @@ impl fmt::Display for Expr {
                 }
                 write!(f, ") {}) {})", fun_body, expr_body)
             }
+            Expr::DefClos {
+                name,
+                freevars,
+                args,
+                body,
+            } => {
+                write!(f, "(defclos {} (", name)?;
+                for (i, var) in freevars.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, " ")?;
+                    }
+                    write!(f, "{}", var)?;
+                }
+                write!(f, ") (")?;
+                for (i, arg) in args.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, " ")?;
+                    }
+                    write!(f, "{}", arg)?;
+                }
+                write!(f, ") {})", body)
+            }
+            Expr::Clos { name, mappings } => {
+                write!(f, "(clos {} (", name)?;
+                for (i, (key, value)) in mappings.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, " ")?;
+                    }
+                    write!(f, "{}: {}", key, value)?;
+                }
+                write!(f, "))")
+            }
         }
     }
 }
@@ -171,58 +213,4 @@ impl fmt::Display for Value {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Env {
-    tables: Vec<HashMap<String, Value>>,
-}
 
-impl Env {
-    pub fn init(&mut self) {
-        self.tables.push(HashMap::new());
-    }
-
-    pub fn new() -> Self {
-        let mut env = Env { tables: Vec::new() };
-        env.init();
-        env
-    }
-
-    pub fn set(&mut self, key: String, value: Value) {
-        let table = self.tables.last_mut().unwrap();
-        table.insert(key, value);
-    }
-
-    // pub fn unset(&mut self, key: &str) {
-    //     if let Some(table) = self.tables.last_mut() {
-    //         table.remove(key);
-    //     }
-    // }
-
-    pub fn get(&self, key: &str) -> Option<&Value> {
-        for table in self.tables.iter().rev() {
-            if let Some(value) = table.get(key) {
-                return Some(value);
-            }
-        }
-        None
-    }
-
-    // pub fn get_mut(&mut self, key: &str) -> Option<&mut Value> {
-    //     for table in self.tables.iter_mut().rev() {
-    //         if let Some(value) = table.get_mut(key) {
-    //             return Some(value);
-    //         }
-    //     }
-    //     None
-    // }
-
-    pub fn push(&mut self, map: HashMap<String, Value>) {
-        self.tables.push(map);
-    }
-
-    // pub fn pop(&mut self) {
-    //     if self.tables.len() > 1 {
-    //         self.tables.pop();
-    //     }
-    // }
-}

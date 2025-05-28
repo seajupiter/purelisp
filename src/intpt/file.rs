@@ -1,7 +1,8 @@
 use std::io;
 use std::path::Path;
 
-use crate::ast::{Env, Expr, Value};
+use crate::ast::{Expr, Value};
+use crate::intpt::Env;
 use crate::intpt::eval::eval;
 // We import read functions from the crate root
 

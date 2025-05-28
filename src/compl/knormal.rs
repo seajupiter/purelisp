@@ -138,6 +138,20 @@ fn k_normal(expr: Expr, namer: &mut NameGenerator) -> Expr {
                 expr_body: Box::new(k_normal(*expr_body, namer)),
             }
         }
+        Expr::DefClos {
+            name: _,
+            freevars: _,
+            args: _,
+            body: _,
+        } => {
+            panic!("DefClos not allowed");
+        }
+        Expr::Clos {
+            name: _,
+            mappings: _,
+        } => {
+            panic!("Clos not allowed");
+        }
     }
 }
 

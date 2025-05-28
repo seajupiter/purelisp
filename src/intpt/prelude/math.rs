@@ -1,4 +1,5 @@
-use crate::ast::{Env, Value};
+use crate::ast::Value;
+use crate::intpt::Env;
 
 pub fn load_math(env: &mut Env) {
     // Square function (sq)

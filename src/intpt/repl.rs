@@ -1,6 +1,7 @@
 use rustyline::{DefaultEditor, Result};
 
-use crate::ast::{Env, Expr, Value};
+use crate::ast::{Expr, Value};
+use crate::intpt::Env;
 use crate::intpt::eval::eval;
 use crate::parse;
 use rustyline::error::ReadlineError;

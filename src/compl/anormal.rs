@@ -70,6 +70,20 @@ pub fn a_normal(expr: Expr, cont: Box<dyn FnOnce(Expr) -> Expr>) -> Expr {
                 "A-normalization does not support and/or expressions (have you k-normalized it in advance?)"
             )
         }
+        Expr::DefClos {
+            name: _,
+            freevars: _,
+            args: _,
+            body: _,
+        } => {
+            panic!("DefClos not allowed");
+        }
+        Expr::Clos {
+            name: _,
+            mappings: _,
+        } => {
+            panic!("Clos not allowed");
+        }
     }
 }
 

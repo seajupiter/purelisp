@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::panic;
 
-use crate::ast::{Env, Expr, Value};
+use crate::ast::{Expr, Value};
+use crate::intpt::Env;
 
 // Helper function to extract free variables from expressions
 fn collect_free_vars(
@@ -271,6 +272,20 @@ pub fn eval(expr: Expr, env: Env) -> Value {
 
             // Evaluate the body with the function defined
             eval(*expr_body, new_env)
+        }
+        Expr::DefClos {
+            name: _,
+            freevars: _,
+            args: _,
+            body: _,
+        } => {
+            panic!("DefClos not allowed");
+        }
+        Expr::Clos {
+            name: _,
+            mappings: _,
+        } => {
+            panic!("Clos not allowed");
         }
     }
 }
