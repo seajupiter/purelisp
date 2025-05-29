@@ -1,4 +1,7 @@
-use std::{collections::HashMap, fmt};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
@@ -20,6 +23,7 @@ pub enum Expr {
     },
     And(Vec<Expr>),
     Or(Vec<Expr>),
+    Not(Box<Expr>),
     Fn {
         args: Vec<String>,
         body: Box<Expr>,
@@ -45,11 +49,19 @@ pub enum Expr {
         args: Vec<String>,
         body: Box<Expr>,
     },
-    Clos {
+    LetClos {
         name: String,
-        mappings: HashMap<String, Expr>,
+        closid: String,
+        freevars: Vec<String>,
+        body: Box<Expr>,
     },
 }
+
+// Primitive symbols (builtin functions)
+pub const PRIMITIVES: [&str; 16] = [
+    "+", "-", "*", "/", "=", "<", "<=", ">", ">=", "list", "car", "cdr", "cons", "length", "nth",
+    "append",
+];
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
@@ -124,6 +136,9 @@ impl fmt::Display for Expr {
                 }
                 write!(f, ")")
             }
+            Expr::Not(expr) => {
+                write!(f, "(not {})", expr)
+            }
             Expr::Def { x, y } => {
                 write!(f, "(def {} {})", x, y)
             }
@@ -174,15 +189,20 @@ impl fmt::Display for Expr {
                 }
                 write!(f, ") {})", body)
             }
-            Expr::Clos { name, mappings } => {
-                write!(f, "(clos {} (", name)?;
-                for (i, (key, value)) in mappings.iter().enumerate() {
+            Expr::LetClos {
+                name,
+                closid,
+                freevars: mappings,
+                body,
+            } => {
+                write!(f, "(letclos ({} {} (", name, closid)?;
+                for (i, id) in mappings.iter().enumerate() {
                     if i > 0 {
                         write!(f, " ")?;
                     }
-                    write!(f, "{}: {}", key, value)?;
+                    write!(f, "{}", id)?;
                 }
-                write!(f, "))")
+                write!(f, ") {})", body)
             }
         }
     }
@@ -213,4 +233,109 @@ impl fmt::Display for Value {
     }
 }
 
+impl Expr {
+    pub fn is_atom(&self) -> bool {
+        matches!(
+            self,
+            Expr::Nil | Expr::Bool(_) | Expr::Int(_) | Expr::Float(_) | Expr::Str(_) | Expr::Id(_)
+        )
+    }
 
+    /// Collect free variables in this expression, excluding any variables in `bounded`
+    pub fn free_vars(&self, bounded: &HashSet<String>) -> Vec<String> {
+        let mut free_vars = HashSet::new();
+        let mut bounded = bounded.clone();
+        for id in PRIMITIVES.iter() {
+            bounded.insert(id.to_string());
+        }
+        self.collect_free_vars_helper(&bounded, &mut free_vars);
+        let mut result: Vec<String> = free_vars.into_iter().collect();
+        result.sort(); // For deterministic output
+        // println!("free_vars: {:?}", result);
+        result
+    }
+
+    /// Helper method to recursively collect free variables
+    fn collect_free_vars_helper(&self, bounded: &HashSet<String>, free_vars: &mut HashSet<String>) {
+        match self {
+            Expr::Id(id) => {
+                if !bounded.contains(id) {
+                    free_vars.insert(id.clone());
+                }
+            }
+            Expr::Let { bindings, body } => {
+                // Process binding expressions first with current bounded variables
+                for (_, expr) in bindings {
+                    expr.collect_free_vars_helper(bounded, free_vars);
+                }
+
+                // Process the body with binding names added to bounded variables
+                let mut new_bounded = bounded.clone();
+                for (name, _) in bindings {
+                    new_bounded.insert(name.clone());
+                }
+                body.collect_free_vars_helper(&new_bounded, free_vars);
+            }
+            Expr::If { cond, then, else_ } => {
+                cond.collect_free_vars_helper(bounded, free_vars);
+                then.collect_free_vars_helper(bounded, free_vars);
+                else_.collect_free_vars_helper(bounded, free_vars);
+            }
+            Expr::Fn { args, body } => {
+                // Function introduces new arguments, exclude them from free variables
+                let mut new_bounded = bounded.clone();
+                for arg in args {
+                    new_bounded.insert(arg.clone());
+                }
+                body.collect_free_vars_helper(&new_bounded, free_vars);
+            }
+            Expr::LetFun {
+                name,
+                args,
+                fun_body,
+                expr_body,
+            } => {
+                // For the function body, exclude both the function name and its args
+                let mut fun_bounded = bounded.clone();
+                fun_bounded.insert(name.clone());
+                for arg in args {
+                    fun_bounded.insert(arg.clone());
+                }
+                fun_body.collect_free_vars_helper(&fun_bounded, free_vars);
+
+                // For the expression body, only exclude the function name
+                let mut expr_bounded = bounded.clone();
+                expr_bounded.insert(name.clone());
+                expr_body.collect_free_vars_helper(&expr_bounded, free_vars);
+            }
+            Expr::Def { .. } | Expr::Defun { .. } | Expr::DefClos { .. } => {
+                panic!("Invalid Expr for free_var collection: {}", self);
+            }
+            Expr::Form(exprs) => {
+                for expr in exprs {
+                    expr.collect_free_vars_helper(bounded, free_vars);
+                }
+            }
+            Expr::And(exprs) | Expr::Or(exprs) => {
+                for expr in exprs {
+                    expr.collect_free_vars_helper(bounded, free_vars);
+                }
+            }
+            Expr::Not(expr) => {
+                expr.collect_free_vars_helper(bounded, free_vars);
+            }
+            Expr::LetClos {
+                name,
+                closid: _,
+                freevars: _,
+                body,
+            } => {
+                let mut new_bounded = bounded.clone();
+                new_bounded.insert(name.clone());
+                body.collect_free_vars_helper(&new_bounded, free_vars);
+            }
+            // Atoms have no free variables
+            Expr::Nil | Expr::Bool(_) | Expr::Int(_) | Expr::Float(_) | Expr::Str(_) => {}
+        }
+    }
+}

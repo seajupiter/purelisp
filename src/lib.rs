@@ -12,7 +12,7 @@ lalrpop_mod!(pub purelisp);
 
 // Expose main public API
 pub use ast::{Expr, Value};
-pub use formatter::{PrettyFormatter, pretty_format};
+pub use formatter::{PrettyFormatter, format_prog, pretty_format};
 pub use intpt::Env;
 pub use intpt::create_environment;
 pub use intpt::eval::eval;

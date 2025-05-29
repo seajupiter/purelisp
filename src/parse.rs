@@ -33,7 +33,7 @@ fn advance_parse(expr: Expr) -> Expr {
                         let body = Box::new(transformed_form[2].clone());
 
                         return Expr::Let { bindings, body };
-                    } else if id == "if" && transformed_form.len() >= 4 {
+                    } else if id == "if" && transformed_form.len() == 4 {
                         // Transform if expression
                         let cond = Box::new(transformed_form[1].clone());
                         let then = Box::new(transformed_form[2].clone());
@@ -48,7 +48,11 @@ fn advance_parse(expr: Expr) -> Expr {
                         // Transform n-ary or expression
                         let exprs = transformed_form[1..].to_vec();
                         return Expr::Or(exprs);
-                    } else if id == "fn" && transformed_form.len() >= 3 {
+                    } else if id == "not" && transformed_form.len() == 2 {
+                        // Transform not expression
+                        let expr = Box::new(transformed_form[1].clone());
+                        return Expr::Not(expr);
+                    } else if id == "fn" && transformed_form.len() == 3 {
                         // Transform fn (lambda function) expression
                         let mut args = Vec::new();
 

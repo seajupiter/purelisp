@@ -1,0 +1,2 @@
+(let ((x 1))
+    (letfun (f (y) (+ x y)) (f 2)))

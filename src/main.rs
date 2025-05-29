@@ -1,27 +1,68 @@
-use purelisp::intpt;
+use purelisp::{compl, intpt};
 
 use std::env;
-use std::path::Path;
+use std::fs;
+use std::io::{self, Write};
+use std::path::{Path, PathBuf};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut use_history = false;
     let mut next_args = Vec::new();
+    let mut is_compile_mode = false;
+    let mut output_path = None;
 
     // First pass: extract global flags like --history
-    for arg in args.iter().skip(1) {
+    let mut i = 1;
+    while i < args.len() {
+        let arg = &args[i];
         if arg == "--history" {
             use_history = true;
-        } else if arg == "--help" {
+        } else if arg == "--help" || arg == "-h" {
             print_usage();
             return;
+        } else if arg == "--compile" || arg == "-c" || arg == "compile" {
+            is_compile_mode = true;
+        } else if arg == "--output" || arg == "-o" {
+            if i + 1 < args.len() {
+                output_path = Some(args[i + 1].clone());
+                i += 1;
+            } else {
+                println!("Missing output path after --output/-o");
+                print_usage();
+                return;
+            }
         } else {
             next_args.push(arg);
         }
+        i += 1;
     }
 
     if !next_args.is_empty() {
-        if next_args[0] == "-l" || next_args[0] == "--load" {
+        if is_compile_mode {
+            // Compile mode - compile the source file to binary
+            let source_path = &next_args[0];
+            let path = Path::new(source_path);
+            
+            if path.exists() {
+                // Determine output path if not explicitly specified
+                let out_path = match output_path {
+                    Some(p) => PathBuf::from(p),
+                    None => {
+                        let mut p = PathBuf::from(source_path);
+                        p.set_extension("plb"); // PureLisp Binary extension
+                        p
+                    }
+                };
+                
+                match compile_file(path, &out_path) {
+                    Ok(()) => println!("Successfully compiled {} to {}", source_path, out_path.display()),
+                    Err(e) => println!("Error compiling file: {}", e),
+                }
+            } else {
+                println!("Source file not found: {}", source_path);
+            }
+        } else if next_args[0] == "-l" || next_args[0] == "--load" {
             if next_args.len() > 1 {
                 // Load the file and then start the REPL
                 let file_path = &next_args[1];
@@ -89,10 +130,24 @@ fn print_usage() {
     println!("  purelisp                               Start the REPL");
     println!("  purelisp [--history] FILE              Execute FILE");
     println!("  purelisp [--history] -l|--load FILE    Execute FILE then start the REPL");
+    println!("  purelisp compile|--compile|-c FILE [-o OUTPUT]    Compile FILE to bytecode");
     println!();
     println!("Options:");
-    println!("  -h, --help      Show this help message");
-    println!("  --history       Enable REPL history");
-    println!("  -l, --load      Load and execute a file before starting the REPL");
-    println!("  compile, --compile, -c     Compile a file to bytecode (default output is FILE.plb)");
+    println!("  -h, --help           Show this help message");
+    println!("  --history            Enable REPL history");
+    println!("  -l, --load           Load and execute a file before starting the REPL");
+    println!("  compile, --compile, -c    Compile a file to bytecode (default output is FILE.plb)");
+    println!("  -o, --output FILE    Specify output file for compilation (default is INPUT.plb)");
+}
+
+/// Compiles a source file to a binary file
+fn compile_file<P: AsRef<Path>, Q: AsRef<Path>>(input_path: P, output_path: Q) -> io::Result<()> {
+    // Compile the file
+    let compiled_code = compl::codegen::compile(input_path)?;
+    
+    // Write the compiled code to the output file
+    let mut file = fs::File::create(output_path)?;
+    file.write_all(compiled_code.as_bytes())?;
+    
+    Ok(())
 }

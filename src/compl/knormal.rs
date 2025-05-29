@@ -2,16 +2,8 @@ use crate::Expr;
 
 use super::util::NameGenerator;
 
-fn is_atom(expr: &Expr) -> bool {
-    match expr {
-        Expr::Nil | Expr::Bool(_) | Expr::Int(_) | Expr::Float(_) | Expr::Str(_) | Expr::Id(_) => {
-            true
-        }
-        _ => false,
-    }
-}
-
 fn k_normal(expr: Expr, namer: &mut NameGenerator) -> Expr {
+    // println!("K-normalizing: {}", expr);
     match expr {
         Expr::Nil | Expr::Bool(_) | Expr::Int(_) | Expr::Float(_) | Expr::Str(_) | Expr::Id(_) => {
             expr
@@ -20,8 +12,8 @@ fn k_normal(expr: Expr, namer: &mut NameGenerator) -> Expr {
             let mut kform: Vec<Expr> = form.iter().map(|e| k_normal(e.clone(), namer)).collect();
             let mut bindings = Vec::new();
             for e in kform.iter_mut() {
-                if !is_atom(e) {
-                    let temp = namer.next();
+                if !e.is_atom() {
+                    let temp = namer.next("%t");
                     bindings.push((temp.clone(), e.clone()));
                     *e = Expr::Id(temp.clone());
                 }
@@ -40,23 +32,22 @@ fn k_normal(expr: Expr, namer: &mut NameGenerator) -> Expr {
             for (name, expr) in bindings {
                 new_bindings.push((name.clone(), k_normal(expr, namer)));
             }
-            Expr::Let {
-                bindings: new_bindings,
-                body: Box::new(k_normal(*body, namer)),
-            }
+            let body = k_normal(*body, namer);
+            // println!("Need to expand: {:?}", new_bindings);
+            expand_let(new_bindings, body)
         }
         Expr::If { cond, then, else_ } => {
             let cond = k_normal(*cond, namer);
             let then = k_normal(*then, namer);
             let else_ = k_normal(*else_, namer);
-            if is_atom(&cond) {
+            if cond.is_atom() {
                 Expr::If {
                     cond: Box::new(cond),
                     then: Box::new(then),
                     else_: Box::new(else_),
                 }
             } else {
-                let temp = namer.next();
+                let temp = namer.next("%t");
                 let let_binding = Expr::Let {
                     bindings: vec![(temp.clone(), cond)],
                     body: Box::new(Expr::If {
@@ -102,11 +93,23 @@ fn k_normal(expr: Expr, namer: &mut NameGenerator) -> Expr {
                 k_normal(result, namer)
             }
         }
+        Expr::Not(expr) => {
+            let result = Expr::If {
+                cond: Box::new(k_normal(*expr, namer)),
+                then: Box::new(Expr::Bool(false)),
+                else_: Box::new(Expr::Bool(true)),
+            };
+            k_normal(result, namer)
+        }
         Expr::Fn { args, body } => {
             // Normalize the function body
-            Expr::Fn {
+            let new_body = k_normal(*body, namer);
+            let name = namer.next("%f");
+            Expr::LetFun {
+                name: name.clone(),
                 args,
-                body: Box::new(k_normal(*body, namer)),
+                fun_body: Box::new(new_body),
+                expr_body: Box::new(Expr::Id(name.clone())),
             }
         }
         Expr::Def { x, y } => {
@@ -138,42 +141,27 @@ fn k_normal(expr: Expr, namer: &mut NameGenerator) -> Expr {
                 expr_body: Box::new(k_normal(*expr_body, namer)),
             }
         }
-        Expr::DefClos {
-            name: _,
-            freevars: _,
-            args: _,
-            body: _,
-        } => {
-            panic!("DefClos not allowed");
-        }
-        Expr::Clos {
-            name: _,
-            mappings: _,
-        } => {
-            panic!("Clos not allowed");
+        Expr::DefClos { .. } | Expr::LetClos { .. } => {
+            panic!("Invalid Expr for K-normalization: {}", expr);
         }
     }
 }
 
-fn expand_let(expr: Expr) -> Expr {
-    match expr {
-        Expr::Let { bindings, body } => {
-            let mut new_body = *body;
-            for (name, expr) in bindings.into_iter().rev() {
-                new_body = Expr::Let {
-                    bindings: vec![(name, expr)],
-                    body: Box::new(new_body),
-                };
-            }
-            new_body
-        }
-        _ => expr,
+fn expand_let(bindings: Vec<(String, Expr)>, body: Expr) -> Expr {
+    let mut new_body = body;
+    for (name, expr) in bindings.into_iter().rev() {
+        new_body = Expr::Let {
+            bindings: vec![(name, expr)],
+            body: Box::new(new_body),
+        };
     }
+    new_body
 }
 
-pub fn k_normalize(expr: Expr, namer: &mut NameGenerator) -> Expr {
-    let k_normal_expr = k_normal(expr, namer);
-    expand_let(k_normal_expr)
+pub fn k_normalize(prog: Vec<Expr>, namer: &mut NameGenerator) -> Vec<Expr> {
+    prog.iter()
+        .map(|expr| k_normal(expr.clone(), namer))
+        .collect()
 }
 
 #[cfg(test)]
@@ -183,38 +171,52 @@ mod test {
     use super::*;
 
     #[test]
+    fn knormal_test_multiplelet() {
+        let expr = parse("(let ((x (let ((z 1) (w 2)) (* z w))) (y 2)) (+ x y))");
+        let kexpr = k_normalize(vec![expr.clone()], &mut NameGenerator::new());
+        println!("original: {}", pretty_format(&expr));
+        println!("k-normalized: {}", pretty_format(&kexpr[0]));
+    }
+    #[test]
     fn knormal_test_funcall() {
         let expr = parse("(+ (+ 1 2) (* 3 4))");
-        let kexpr = k_normalize(expr.clone(), &mut NameGenerator::new("t"));
+        let kexpr = k_normalize(vec![expr.clone()], &mut NameGenerator::new());
         println!("original: {}", pretty_format(&expr));
-        println!("k-normalized: {}", pretty_format(&kexpr));
+        println!("k-normalized: {}", pretty_format(&kexpr[0]));
     }
     #[test]
     fn knormal_test_if() {
-        let expr = parse("(if (> 1 2) (+ 3 4) (* 5 6))");
-        let kexpr = k_normalize(expr.clone(), &mut NameGenerator::new("t"));
+        let expr = parse("(if (> -1 2) (+ 3 4) (* 5 6))");
+        let kexpr = k_normalize(vec![expr.clone()], &mut NameGenerator::new());
         println!("original: {}", pretty_format(&expr));
-        println!("k-normalized: {}", pretty_format(&kexpr));
+        println!("k-normalized: {}", pretty_format(&kexpr[0]));
     }
     #[test]
     fn knormal_test_and() {
-        let expr = parse("(and (> 1 2) (< 3 4))");
-        let kexpr = k_normalize(expr.clone(), &mut NameGenerator::new("t"));
+        let expr = parse("(and (> -1 2) (< 3 4))");
+        let kexpr = k_normalize(vec![expr.clone()], &mut NameGenerator::new());
         println!("original: {}", pretty_format(&expr));
-        println!("k-normalized: {}", pretty_format(&kexpr));
+        println!("k-normalized: {}", pretty_format(&kexpr[0]));
     }
     #[test]
     fn knormal_test_or() {
-        let expr = parse("(or (> 1 2) (< 3 4))");
-        let kexpr = k_normalize(expr.clone(), &mut NameGenerator::new("t"));
+        let expr = parse("(or (> -1 2) (< 3 4))");
+        let kexpr = k_normalize(vec![expr.clone()], &mut NameGenerator::new());
         println!("original: {}", pretty_format(&expr));
-        println!("k-normalized: {}", pretty_format(&kexpr));
+        println!("k-normalized: {}", pretty_format(&kexpr[0]));
     }
     #[test]
     fn knormal_test_letfun() {
-        let expr = parse("(letfun (f (x) (+ (* x x) x)) (f (+ 1 (* 2 3))))");
-        let kexpr = k_normalize(expr.clone(), &mut NameGenerator::new("t"));
+        let expr = parse("(letfun (f (x) (+ (* x x) x)) (f (+ -1 (* 2 3))))");
+        let kexpr = k_normalize(vec![expr.clone()], &mut NameGenerator::new());
         println!("original: {}", pretty_format(&expr));
-        println!("k-normalized: {}", pretty_format(&kexpr));
+        println!("k-normalized: {}", pretty_format(&kexpr[0]));
+    }
+    #[test]
+    fn knormal_test_fn() {
+        let expr = parse("(let ((f (fn (x) (+ (* x x) x)))) (f (+ -1 (* 2 3))))");
+        let kexpr = k_normalize(vec![expr.clone()], &mut NameGenerator::new());
+        println!("original: {}", pretty_format(&expr));
+        println!("k-normalized: {}", pretty_format(&kexpr[0]));
     }
 }

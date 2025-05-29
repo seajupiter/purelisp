@@ -4,102 +4,6 @@ use std::panic;
 use crate::ast::{Expr, Value};
 use crate::intpt::Env;
 
-// Helper function to extract free variables from expressions
-fn collect_free_vars(
-    expr: &Expr,
-    args: &Vec<String>,
-    func_name: Option<&String>,
-    free_vars: &mut HashMap<String, Value>,
-    env: &Env,
-) {
-    match expr {
-        Expr::Id(id) => {
-            if !args.contains(id) && func_name.map_or(true, |name| id != name) {
-                if !free_vars.contains_key(id) {
-                    if let Some(value) = env.get(id) {
-                        free_vars.insert(id.clone(), value.clone());
-                    } else {
-                        panic!("Undefined identifier in closure: {}", id);
-                    }
-                }
-            }
-        }
-        Expr::Let { bindings, body } => {
-            // Let introduces new bindings, so we don't capture those
-            let binding_names: Vec<String> =
-                bindings.iter().map(|(name, _)| name.clone()).collect();
-
-            // Process the body, but with binding names excluded
-            let mut temp_args = args.clone();
-            temp_args.extend(binding_names);
-            collect_free_vars(body, &temp_args, func_name, free_vars, env);
-
-            // Process binding expressions
-            for (_, expr) in bindings {
-                collect_free_vars(expr, args, func_name, free_vars, env);
-            }
-        }
-        Expr::If { cond, then, else_ } => {
-            collect_free_vars(cond, args, func_name, free_vars, env);
-            collect_free_vars(then, args, func_name, free_vars, env);
-            collect_free_vars(else_, args, func_name, free_vars, env);
-        }
-        Expr::Fn {
-            args: inner_args,
-            body: inner_body,
-        } => {
-            // Function introduces new arguments, exclude them from captured variables
-            let mut temp_args = args.clone();
-            temp_args.extend(inner_args.clone());
-            collect_free_vars(inner_body, &temp_args, func_name, free_vars, env);
-        }
-        Expr::LetFun {
-            name: inner_name,
-            args: inner_args,
-            fun_body: inner_fun_body,
-            expr_body: inner_expr_body,
-        } => {
-            // For nested letfun, we need to handle inner function separately
-
-            // For the function body, exclude both the function name and its args
-            let mut temp_args = args.clone();
-            temp_args.extend(inner_args.clone());
-            temp_args.push(inner_name.clone());
-
-            // Process the function body with both function args excluded
-            collect_free_vars(inner_fun_body, &temp_args, func_name, free_vars, env);
-
-            // For the expression body, only exclude the function name
-            // (the inner function should be able to use variables from the outer scope)
-            let mut expr_args = args.clone();
-            expr_args.push(inner_name.clone());
-
-            // Process the expression body with function name excluded
-            collect_free_vars(inner_expr_body, &expr_args, func_name, free_vars, env);
-        }
-        Expr::Def { x: _, y: value } => {
-            // Process the value expression
-            collect_free_vars(value, args, func_name, free_vars, env);
-        }
-        Expr::Form(exprs) => {
-            for expr in exprs {
-                collect_free_vars(expr, args, func_name, free_vars, env);
-            }
-        }
-        Expr::And(exprs) => {
-            for expr in exprs {
-                collect_free_vars(expr, args, func_name, free_vars, env);
-            }
-        }
-        Expr::Or(exprs) => {
-            for expr in exprs {
-                collect_free_vars(expr, args, func_name, free_vars, env);
-            }
-        }
-        _ => {}
-    }
-}
-
 pub fn eval(expr: Expr, env: Env) -> Value {
     // println!("Evaluating: {:?}", expr);
     // println!("    with Environment: {:?}", env);
@@ -140,6 +44,13 @@ pub fn eval(expr: Expr, env: Env) -> Value {
             }
             Value::Bool(false)
         }
+        Expr::Not(expr) => {
+            let val = eval(*expr, env.clone());
+            match val {
+                Value::Bool(b) => Value::Bool(!b),
+                _ => panic!("Argument to 'not' must be boolean"),
+            }
+        }
         Expr::Let { bindings, body } => {
             // Create a new environment by extending the current one
             let mut new_env = env.clone();
@@ -169,10 +80,25 @@ pub fn eval(expr: Expr, env: Env) -> Value {
                 params: args.clone(),
                 body: *body.clone(),
                 mappings: {
-                    // Identify all identifiers in the function body
-                    let mut free_vars = HashMap::new();
-                    collect_free_vars(&body, &args, None, &mut free_vars, &env);
-                    free_vars
+                    // Create bounded set with function arguments
+                    let mut bounded = std::collections::HashSet::new();
+                    for arg in &args {
+                        bounded.insert(arg.clone());
+                    }
+
+                    // Get free variable names using the new method
+                    let free_var_names = body.free_vars(&bounded);
+
+                    // Build mappings from environment
+                    let mut mappings = HashMap::new();
+                    for var_name in free_var_names {
+                        if let Some(value) = env.get(&var_name) {
+                            mappings.insert(var_name, value.clone());
+                        } else {
+                            panic!("Undefined identifier in closure: {}", var_name);
+                        }
+                    }
+                    mappings
                 },
             }
         }
@@ -236,14 +162,10 @@ pub fn eval(expr: Expr, env: Env) -> Value {
                 }
             }
         }
-        Expr::Def { x: _, y: _ } => {
+        Expr::Def { .. } => {
             panic!("Def expression only allowed in top level form");
         }
-        Expr::Defun {
-            name: _,
-            args: _,
-            body: _,
-        } => {
+        Expr::Defun { .. } => {
             panic!("Defun expression only allowed in top level form");
         }
         Expr::LetFun {
@@ -260,8 +182,25 @@ pub fn eval(expr: Expr, env: Env) -> Value {
                 params: args.clone(),
                 body: *fun_body.clone(),
                 mappings: {
+                    // Create bounded set with function name and arguments
+                    let mut bounded = std::collections::HashSet::new();
+                    bounded.insert(name.clone()); // Function can refer to itself
+                    for arg in &args {
+                        bounded.insert(arg.clone());
+                    }
+
+                    // Get free variable names using the new method
+                    let free_var_names = fun_body.free_vars(&bounded);
+
+                    // Build mappings from environment
                     let mut mappings = HashMap::new();
-                    collect_free_vars(&fun_body, &args, Some(&name), &mut mappings, &env);
+                    for var_name in free_var_names {
+                        if let Some(value) = env.get(&var_name) {
+                            mappings.insert(var_name, value.clone());
+                        } else {
+                            panic!("Undefined identifier in closure: {}", var_name);
+                        }
+                    }
                     mappings
                 },
             };
@@ -273,18 +212,10 @@ pub fn eval(expr: Expr, env: Env) -> Value {
             // Evaluate the body with the function defined
             eval(*expr_body, new_env)
         }
-        Expr::DefClos {
-            name: _,
-            freevars: _,
-            args: _,
-            body: _,
-        } => {
+        Expr::DefClos { .. } => {
             panic!("DefClos not allowed");
         }
-        Expr::Clos {
-            name: _,
-            mappings: _,
-        } => {
+        Expr::LetClos { .. } => {
             panic!("Clos not allowed");
         }
     }

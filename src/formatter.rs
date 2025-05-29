@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::Expr;
 
 pub struct PrettyFormatter {
@@ -51,6 +49,7 @@ impl PrettyFormatter {
             Expr::If { cond, then, else_ } => self.format_if(cond, then, else_, current_indent),
             Expr::And(exprs) => self.format_and_or("and", exprs, current_indent),
             Expr::Or(exprs) => self.format_and_or("or", exprs, current_indent),
+            Expr::Not(expr) => self.format_not(expr, current_indent),
             Expr::Fn { args, body } => self.format_fn(args, body, current_indent),
             Expr::Def { x, y } => self.format_def(x, y, current_indent),
             Expr::Defun { name, args, body } => self.format_defun(name, args, body, current_indent),
@@ -66,7 +65,12 @@ impl PrettyFormatter {
                 args,
                 body,
             } => self.format_defclos(name, freevars, args, body, current_indent),
-            Expr::Clos { name, mappings } => self.format_clos(name, mappings),
+            Expr::LetClos {
+                name,
+                closid,
+                freevars,
+                body,
+            } => self.format_letclos(name, closid, freevars, body, current_indent),
         }
     }
 
@@ -129,29 +133,29 @@ impl PrettyFormatter {
         current_indent: usize,
     ) -> String {
         let next_indent = current_indent + 1;
-        let binding_indent = current_indent + 2;
         let indent = self.indent_str(current_indent);
-        let inner_indent = self.indent_str(next_indent);
-        let _binding_indent_str = self.indent_str(binding_indent);
+        let inner_indent_str = self.indent_str(next_indent);
+        let binding_indent_str = self.indent_str(current_indent + 2);
 
         let bindings_formatted = bindings
             .iter()
             .map(|(name, val)| {
                 format!(
                     "{}({} {})",
-                    inner_indent,
+                    binding_indent_str,
                     name,
-                    self.format_expr(val, binding_indent)
+                    self.format_expr(val, current_indent + 2)
                 )
             })
             .collect::<Vec<_>>()
             .join("\n");
 
         format!(
-            "(let (\n{}\n{})\n{}{}\n{})",
+            "(let\n{}(\n{}\n{})\n{}{}\n{})",
+            inner_indent_str,
             bindings_formatted,
-            inner_indent,
-            inner_indent,
+            inner_indent_str,
+            inner_indent_str,
             self.format_expr(body, next_indent),
             indent
         )
@@ -228,6 +232,10 @@ impl PrettyFormatter {
             if !exprs.is_empty() { "\n" } else { "" },
             indent
         )
+    }
+
+    fn format_not(&self, expr: &Expr, current_indent: usize) -> String {
+        format!("(not {})", self.format_expr(expr, current_indent + 1))
     }
 
     fn format_fn(&self, args: &[String], body: &Expr, current_indent: usize) -> String {
@@ -368,20 +376,49 @@ impl PrettyFormatter {
         )
     }
 
-    fn format_clos(&self, name: &str, mappings: &HashMap<String, Expr>) -> String {
-        let mappings_str = mappings
+    fn format_letclos(
+        &self,
+        name: &str,
+        closid: &str,
+        freevars: &[String],
+        body: &Expr,
+        current_indent: usize,
+    ) -> String {
+        let next_indent = current_indent + 1;
+        let indent = self.indent_str(current_indent);
+        let freevar_indent = self.indent_str(current_indent + 2);
+        let inner_indent = self.indent_str(next_indent);
+
+        let freevar_formatted = freevars
             .iter()
-            .map(|(key, value)| format!("({} {})", key, self.format_expr(value, 0)))
+            .map(|id| format!("{}", id,))
             .collect::<Vec<_>>()
             .join(" ");
 
-        format!("(clos {} ({}))", name, mappings_str)
+        format!(
+            "(letclos ({} {}\n{}({})\n{})\n{}{}\n{})",
+            name,
+            closid,
+            freevar_indent,
+            freevar_formatted,
+            inner_indent,
+            inner_indent,
+            self.format_expr(body, next_indent),
+            indent
+        )
     }
 }
 
 // Convenience function to quickly format an expression
 pub fn pretty_format(expr: &Expr) -> String {
     PrettyFormatter::default().format(expr)
+}
+
+pub fn format_prog(prog: &[Expr]) -> String {
+    prog.iter()
+        .map(|expr| PrettyFormatter::default().format(expr))
+        .collect::<Vec<_>>()
+        .join("\n\n")
 }
 
 #[cfg(test)]
@@ -428,5 +465,21 @@ mod tests {
         ]);
 
         assert_eq!(formatter.format(&nested_form), "(add (mul 2 3) 4)");
+    }
+
+    #[test]
+    fn test_format_clos() {
+        let closure = Expr::LetClos {
+            name: "f".to_string(),
+            closid: "f_tmp_0".to_string(),
+            freevars: vec!["x".to_string(), "y".to_string()],
+            body: Box::new(Expr::Form(vec![
+                Expr::Id("+".to_string()),
+                Expr::Int(1),
+                Expr::Form(vec![Expr::Id("f".to_string()), Expr::Int(2)]),
+            ])),
+        };
+
+        println!("{}", pretty_format(&closure));
     }
 }

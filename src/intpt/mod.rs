@@ -3,9 +3,9 @@ pub mod file;
 pub mod prelude;
 pub mod repl;
 
-use std::collections::HashMap;
 use crate::ast::Value;
 use prelude::load_prelude;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Env {
@@ -28,12 +28,6 @@ impl Env {
         table.insert(key, value);
     }
 
-    // pub fn unset(&mut self, key: &str) {
-    //     if let Some(table) = self.tables.last_mut() {
-    //         table.remove(key);
-    //     }
-    // }
-
     pub fn get(&self, key: &str) -> Option<&Value> {
         for table in self.tables.iter().rev() {
             if let Some(value) = table.get(key) {
@@ -43,24 +37,9 @@ impl Env {
         None
     }
 
-    // pub fn get_mut(&mut self, key: &str) -> Option<&mut Value> {
-    //     for table in self.tables.iter_mut().rev() {
-    //         if let Some(value) = table.get_mut(key) {
-    //             return Some(value);
-    //         }
-    //     }
-    //     None
-    // }
-
     pub fn push(&mut self, map: HashMap<String, Value>) {
         self.tables.push(map);
     }
-
-    // pub fn pop(&mut self) {
-    //     if self.tables.len() > 1 {
-    //         self.tables.pop();
-    //     }
-    // }
 }
 
 pub fn create_environment() -> Env {

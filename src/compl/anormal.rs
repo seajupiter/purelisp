@@ -25,11 +25,15 @@ pub fn a_normal(expr: Expr, cont: Box<dyn FnOnce(Expr) -> Expr>) -> Expr {
                 }),
             )
         }
-        Expr::If {
-            cond: _,
-            then: _,
-            else_: _,
-        } => cont(expr),
+        Expr::If { cond, then, else_ } => {
+            let new_then = Box::new(a_normal(*then, Box::new(|e| e)));
+            let new_else = Box::new(a_normal(*else_, Box::new(|e| e)));
+            cont(Expr::If {
+                cond,
+                then: new_then,
+                else_: new_else,
+            })
+        }
         Expr::LetFun {
             name,
             args,
@@ -65,58 +69,64 @@ pub fn a_normal(expr: Expr, cont: Box<dyn FnOnce(Expr) -> Expr>) -> Expr {
                 body: new_body,
             }
         }
-        Expr::And(_) | Expr::Or(_) => {
-            panic!(
-                "A-normalization does not support and/or expressions (have you k-normalized it in advance?)"
-            )
-        }
-        Expr::DefClos {
-            name: _,
-            freevars: _,
-            args: _,
-            body: _,
-        } => {
-            panic!("DefClos not allowed");
-        }
-        Expr::Clos {
-            name: _,
-            mappings: _,
-        } => {
-            panic!("Clos not allowed");
+        Expr::And(_) | Expr::Or(_) | Expr::Not(_) | Expr::DefClos { .. } | Expr::LetClos { .. } => {
+            panic!("Invalid Expr for A-normalization: {}", expr)
         }
     }
 }
 
-pub fn a_normalize(expr: Expr) -> Expr {
-    a_normal(expr, Box::new(|e| e))
+pub fn a_normalize(prog: Vec<Expr>) -> Vec<Expr> {
+    prog.iter()
+        .map(|expr| a_normal(expr.clone(), Box::new(|e| e)))
+        .collect()
 }
 
 #[cfg(test)]
 mod test {
     use crate::{
         compl::{knormal::k_normalize, util::NameGenerator},
-        parse, pretty_format,
+        pretty_format, read_string,
     };
 
     use super::*;
 
     #[test]
     fn anormal_test_nested_let() {
-        let expr = parse("(let ((x (let ((y 1)) y))) x)");
-        let kexpr = k_normalize(expr.clone(), &mut NameGenerator::new("t"));
-        let aexpr = a_normalize(kexpr.clone());
-        println!("original: {}", pretty_format(&expr));
-        println!("k-normalized: {}", pretty_format(&kexpr));
-        println!("a-normalized: {}", pretty_format(&aexpr));
+        let prog = read_string("(let ((x (let ((z 1) (w 2)) (* z w))) (y 2)) (+ x y))").unwrap();
+        let kprog = k_normalize(prog.clone(), &mut NameGenerator::new());
+        let aprog = a_normalize(kprog.clone());
+        println!("original: {}", pretty_format(&prog[0]));
+        println!("k-normalized: {}", pretty_format(&kprog[0]));
+        println!("a-normalized: {}", pretty_format(&aprog[0]));
+    }
+
+    #[test]
+    fn anormal_test_if() {
+        let prog = read_string("(if (= 1 2) nil (let ((x (let ((y 1)) y))) x))").unwrap();
+        let kprog = k_normalize(prog.clone(), &mut NameGenerator::new());
+        let aprog = a_normalize(kprog.clone());
+        println!("original: {}", pretty_format(&prog[0]));
+        println!("k-normalized: {}", pretty_format(&kprog[0]));
+        println!("a-normalized: {}", pretty_format(&aprog[0]));
     }
 
     #[test]
     fn anormal_test_letfun() {
-        let expr = parse("(letfun (f (x) x) (f (+ 1 (* 2 3))))");
-        let kexpr = k_normalize(expr.clone(), &mut NameGenerator::new("t"));
-        let aexpr = a_normalize(kexpr.clone());
-        println!("original: {}", pretty_format(&expr));
-        println!("k-normalized: {}", pretty_format(&kexpr));
-        println!("a-normalized: {}", pretty_format(&aexpr));
+        let prog = read_string("(letfun (f (x) x) (f (+ 1 (* 2 3))))").unwrap();
+        let kprog = k_normalize(prog.clone(), &mut NameGenerator::new());
+        let aprog = a_normalize(kprog.clone());
+        println!("original: {}", pretty_format(&prog[0]));
+        println!("k-normalized: {}", pretty_format(&kprog[0]));
+        println!("a-normalized: {}", pretty_format(&aprog[0]));
+    }
+
+    #[test]
+    fn anormal_test_fn() {
+        let prog = read_string("(let ((f (fn (x) (+ (* x x) x)))) (f (+ 1 (* 2 3))))").unwrap();
+        let kprog = k_normalize(prog.clone(), &mut NameGenerator::new());
+        let aprog = a_normalize(kprog.clone());
+        println!("original: {}", pretty_format(&prog[0]));
+        println!("k-normalized: {}", pretty_format(&kprog[0]));
+        println!("a-normalized: {}", pretty_format(&aprog[0]));
     }
 }
