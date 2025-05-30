@@ -43,20 +43,24 @@ fn main() {
             // Compile mode - compile the source file to binary
             let source_path = &next_args[0];
             let path = Path::new(source_path);
-            
+
             if path.exists() {
                 // Determine output path if not explicitly specified
                 let out_path = match output_path {
                     Some(p) => PathBuf::from(p),
                     None => {
                         let mut p = PathBuf::from(source_path);
-                        p.set_extension("plb"); // PureLisp Binary extension
+                        p.set_extension("plir"); // purelisp IR
                         p
                     }
                 };
-                
+
                 match compile_file(path, &out_path) {
-                    Ok(()) => println!("Successfully compiled {} to {}", source_path, out_path.display()),
+                    Ok(()) => println!(
+                        "Successfully compiled {} to {}",
+                        source_path,
+                        out_path.display()
+                    ),
                     Err(e) => println!("Error compiling file: {}", e),
                 }
             } else {
@@ -144,10 +148,10 @@ fn print_usage() {
 fn compile_file<P: AsRef<Path>, Q: AsRef<Path>>(input_path: P, output_path: Q) -> io::Result<()> {
     // Compile the file
     let compiled_code = compl::codegen::compile(input_path)?;
-    
+
     // Write the compiled code to the output file
     let mut file = fs::File::create(output_path)?;
     file.write_all(compiled_code.as_bytes())?;
-    
+
     Ok(())
 }

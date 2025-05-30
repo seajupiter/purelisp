@@ -75,8 +75,8 @@ fn copy_prop_helper(expr: Expr, env: &Env) -> Expr {
     match expr {
         Expr::Def { .. }
         | Expr::Defun { .. }
-        | Expr::LetClos { .. }
         | Expr::DefClos { .. }
+        | Expr::LetClos { .. }
         | Expr::Fn { .. }
         | Expr::And(_)
         | Expr::Or(_)

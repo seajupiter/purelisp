@@ -40,4 +40,6 @@ Thumbs.db
 
 # Miscellaneous
 todo.txt
-*.plb
+
+# purelisp IR
+*.plir
