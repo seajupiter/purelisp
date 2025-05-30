@@ -128,9 +128,7 @@ fn copy_prop_helper(expr: Expr, env: &Env) -> Expr {
             fun_body,
             expr_body,
         } => {
-            let fun_env = Env::new();
-            let optimized_fun_body = copy_prop_helper(*fun_body, &fun_env);
-
+            let optimized_fun_body = copy_prop_helper(*fun_body, env);
             let optimized_expr_body = copy_prop_helper(*expr_body, env);
 
             Expr::LetFun {
