@@ -1,5 +1,7 @@
 ;; Super simple test file for code generation
 
+(+ 1 2)
+
 (def add1 (fn (x) (+ x 1)))
 
 (add1 5)

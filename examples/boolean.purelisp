@@ -1,10 +1,3 @@
-; Test and/or short-circuit logic
-(and true true)
-(and true false)
-(or false true)
-(or false (and true true))
-(and (or false true) (or false false))
-
 ; N-ary and/or tests
 (and) ; should be true (identity)
 (or)  ; should be false (identity)
@@ -18,3 +11,4 @@
 (or false false (and true true) false)
 (and true true true (and) true)
 (or (or) false)
+(not (= 1 2))

@@ -1,17 +1,14 @@
-(defun dec (x)
-    (- x 1)
-)
+; Define a higher-order function that applies a function n times
+(defun apply-n-times (f n x)
+          (if (= n 0)
+              x
+              (f (apply-n-times f (- n 1) x))))
 
-(letfun
-    (makefac (maker)
-        (fn (x)
-            (if (= x 0)
-                1
-                (* x ((maker maker) (dec x)))
-            )
-        )
-    )
-    (let ((fac (makefac makefac)))
-        (fac 3)
-    )
-)
+(let ((double (fn (x) (* x 2))))
+    (apply-n-times double 3 2))
+
+(let ((add3 (fn (x) (+ x 3))))
+    (apply-n-times add3 2 5))
+
+(let ((square (fn (x) (* x x))))
+    (apply-n-times square 2 3))
