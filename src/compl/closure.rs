@@ -157,10 +157,7 @@ impl ClosureConverter {
                     fun_bounded.insert(arg.clone());
                 }
 
-                println!("converting {}...", name);
-                println!("new function body: {}", new_fun_body);
                 let freevars: Vec<String> = new_fun_body.free_vars(&fun_bounded);
-                println!("freevars: {:?}", freevars);
                 let closid = namer.next("@f");
                 self.freevars_exclude.insert(closid.clone());
                 let new_fun_body = Self::id_map(new_fun_body, &name, &closid);

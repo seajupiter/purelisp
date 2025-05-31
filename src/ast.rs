@@ -67,7 +67,6 @@ pub enum Value {
     Int(i64),
     Float(f64),
     Str(String),
-    Pair(Expr, Expr),
     Func(fn(Vec<Value>) -> Value),
     Closure {
         params: Vec<String>,
@@ -214,9 +213,6 @@ impl fmt::Display for Value {
             Value::Int(i) => write!(f, "{}", i),
             Value::Float(fl) => write!(f, "{}", fl),
             Value::Str(s) => write!(f, "{}", s),
-            Value::Pair(l, r) => {
-                write!(f, "({} . {})", l, r)
-            }
             Value::Func(_) => write!(f, "<function>"),
             Value::Closure { params, .. } => write!(f, "<closure:{}>", params.join(" ")),
         }

@@ -136,26 +136,24 @@ fn main() {
     }
 }
 
+#[rustfmt::skip]
 fn print_usage() {
-    println!("PureLisp - A minimalist Lisp interpreter and compiler");
-    println!();
-    println!("Usage:");
-    println!("  purelisp                               Start the REPL");
-    println!("  purelisp [--history] FILE              Execute FILE");
-    println!("  purelisp [--history] -l|--load FILE    Execute FILE then start the REPL");
-    println!("  purelisp compile|--compile|-c FILE [-o OUTPUT]    Compile FILE to bytecode");
-    println!();
-    println!("Options:");
-    println!("  -h, --help           Show this help message");
-    println!("  --history            Enable REPL history");
-    println!("  -l, --load           Load and execute a file before starting the REPL");
-    println!(
-        "  compile, --compile, -c    Compile a file to PureLisp IR (default output is FILE.plir)"
-    );
-    println!("  --compile-c, -cc          Compile a file to C code (default output is FILE.c)");
-    println!(
-        "  -o, --output FILE    Specify output file for compilation (default is INPUT.plir/c)"
-    );
+    println!(r##"
+PureLisp - A minimalist Lisp-like pure-functional language interpreter and compiler
+
+Usage:
+  purelisp [--history]                              Start the REPL
+  purelisp FILE                                     Execute FILE
+  purelisp [--history] -l|--load FILE               Execute FILE then start the REPL
+  purelisp compile [-ir] FILE [-o OUTPUT]           Compile FILE to C-code (default) or PureLisp IR
+
+Options:
+  -h, --help                Show this help message
+  --history                 Enable REPL history
+  -l, --load                Load and execute a file before starting the REPL
+  -ir                       Compile a file to PureLisp IR (default is C-code)
+  -o, --output FILE         Specify output file for compilation (default is INPUT.plir/c)
+"##);
 }
 
 /// Compiles a source file to a binary file

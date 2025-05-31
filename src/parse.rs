@@ -164,7 +164,6 @@ fn advance_parse(expr: Expr) -> Expr {
 }
 
 pub fn parse(input: &str) -> Expr {
-    // println!("lalr parse: {}", input);
     match purelisp::ExprParser::new().parse(&input) {
         Ok(expr) => advance_parse(expr),
         Err(_) => panic!("Parse error"),
