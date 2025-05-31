@@ -5,6 +5,7 @@ pub mod closure;
 pub mod codegen;
 pub mod copyprop;
 pub mod knormal;
+pub mod runtime;
 pub mod util;
 
 pub fn compl_to_ir(prog: Vec<Expr>) -> String {

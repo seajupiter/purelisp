@@ -39,6 +39,7 @@ struct CCodeGenerator {
     func_decl: Vec<String>,
     clos_decl: Vec<String>,
     global_var_decl: Vec<String>,
+    global_var_def: Vec<String>,
     main_prog: Vec<String>,
     func_def: Vec<String>,
     clos_def: Vec<String>,
@@ -52,6 +53,7 @@ impl CCodeGenerator {
             func_decl: Vec::new(),
             clos_decl: Vec::new(),
             global_var_decl: Vec::new(),
+            global_var_def: Vec::new(),
             main_prog: Vec::new(),
             func_def: Vec::new(),
             clos_def: Vec::new(),
@@ -85,6 +87,25 @@ impl CCodeGenerator {
     /// Generate C code from the PureLisp program
     fn gen_prog(&mut self, prog: Vec<Expr>) -> String {
         self.load_builtin_env();
+
+        for expr in prog.iter() {
+            match expr {
+                Expr::Def { x, .. } => {
+                    let x_addr = self.fresh_var("global_var");
+                    self.env.push(x.clone(), x_addr);
+                }
+                Expr::Defun { name, .. } => {
+                    let funcptr = self.fresh_var("global_func");
+                    self.env.push(name.clone(), funcptr);
+                }
+                Expr::DefClos { name, .. } => {
+                    let closptr = self.fresh_var("global_clos");
+                    self.env.push(name.clone(), closptr);
+                }
+                _ => {}
+            }
+        }
+
         for expr in prog {
             match expr {
                 Expr::Def { x, y } => {
@@ -119,17 +140,23 @@ impl CCodeGenerator {
             "PLV {}(){{\n{}\nreturn {};\n}}",
             func_addr, y_code, y_addr
         ));
-        let x_addr = self.fresh_var("global_var");
+        let x_addr = self
+            .env
+            .get(&x)
+            .unwrap_or_else(|| panic!("Undefined identifier: {}", x))
+            .clone();
         self.global_var_decl.push(format!("PLV {};", x_addr));
-        self.main_prog
+        self.global_var_def
             .push(format!("PLV {} = {}();", x_addr, func_addr));
         self.env.push(x, x_addr);
     }
 
     fn gen_defun(&mut self, name: String, args: Vec<String>, body: Expr) {
-        // println!("generate code for defun: {} {:?} {}", name, args, body);
-        let funcptr = self.fresh_var("global_func");
-        self.env.push(name.clone(), funcptr.clone());
+        let funcptr = self
+            .env
+            .get(&name)
+            .unwrap_or_else(|| panic!("Undefined identifier: {}", name))
+            .clone();
         for (i, arg) in args.iter().enumerate() {
             self.env.push(arg.clone(), format!("args[{}]", i));
         }
@@ -142,13 +169,14 @@ impl CCodeGenerator {
             "PLV {}(PLV *args){{\n{}\nreturn {};\n}}",
             funcptr, body_code, body_addr
         ));
-        // println!("function {} defined.", name);
-        // println!("{:?}", self.env);
     }
 
     fn gen_defclos(&mut self, name: String, freevars: Vec<String>, args: Vec<String>, body: Expr) {
-        let closptr = self.fresh_var("global_clos");
-        self.env.push(name.clone(), closptr.clone());
+        let closptr = self
+            .env
+            .get(&name)
+            .unwrap_or_else(|| panic!("Undefined identifier: {}", name))
+            .clone();
         for (i, freevar) in freevars.iter().enumerate() {
             self.env.push(freevar.clone(), format!("freevars[{}]", i));
         }
@@ -270,7 +298,6 @@ impl CCodeGenerator {
                 let (body_code, body_addr) = self.gen_expr(*body);
                 self.env.pop();
                 code.push_str(&format!("{}\n", body_code));
-                code.push_str(&format!("__delete_PLV(&{});", e_addr));
                 (code, body_addr)
             }
             Expr::LetClos {
@@ -289,15 +316,14 @@ impl CCodeGenerator {
                 };
                 let freevars_addr = self.fresh_var("freevars");
                 code.push_str(&format!(
-                    "PLV *freevars = malloc(sizeof(PLV) * {});\n",
+                    "PLV *{} = malloc(sizeof(PLV) * {});\n",
+                    freevars_addr,
                     freevars.len()
                 ));
                 for (i, var) in freevars.iter().enumerate() {
-                    if let Some(addr) = self.env.get(var) {
-                        code.push_str(&format!("{}[{}] = {};\n", freevars_addr, i, addr));
-                    } else {
-                        panic!("Undefined identifier: {}", var);
-                    }
+                    let (freevar_code, freevar_addr) = self.gen_expr(Expr::Id(var.clone()));
+                    code.push_str(&format!("{}\n", freevar_code));
+                    code.push_str(&format!("{}[{}] = {};\n", freevars_addr, i, freevar_addr));
                 }
                 code.push_str(&format!(
                     "PLV {} = __new_CLOS({}, {});\n",
@@ -307,7 +333,6 @@ impl CCodeGenerator {
                 let (body_code, body_addr) = self.gen_expr(*body);
                 self.env.pop();
                 code.push_str(&format!("{}\n", body_code));
-                code.push_str(&format!("__delete_PLV(&{});\nfree(freevars);", clos_addr));
                 (code, body_addr)
             }
         }
@@ -316,50 +341,23 @@ impl CCodeGenerator {
     /// Assemble the complete C program from all the generated code parts
     fn assemble_program(&self) -> String {
         format!(
-            "#include \"runtime.c\"\n\n\
+            "{}\n\n\
+             // Global variable declarations\n{}\n\n\
              // Function declarations\n{}\n\n\
              // Closure declarations\n{}\n\n\
-             // Global variable declarations\n{}\n\n\
-             // Main program\nint main() {{\n{}\nreturn 0;\n}}\n\n\
+             // Main program\nint main() {{\n\n\
+             // Global variable initializations\n{}\n\n\
+             // Expressions to evaluate\n{}\n\nreturn 0;\n}}\n\n\
              // Function definitions\n{}\n\n\
              // Closure definitions\n{}",
+            crate::compl::runtime::RUNTIME_C_CODE,
+            self.global_var_decl.join("\n"),
             self.func_decl.join("\n"),
             self.clos_decl.join("\n"),
-            self.global_var_decl.join("\n"),
+            self.global_var_def.join("\n"),
             self.main_prog.join("\n"),
             self.func_def.join("\n"),
             self.clos_def.join("\n")
         )
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::compl::{
-        anormal::a_normalize, closure::closure_convert, copyprop::copy_prop, knormal::k_normalize,
-        util::NameGenerator,
-    };
-    use crate::read_string;
-
-    fn compile_to_c(source: &str) -> String {
-        let mut namer = NameGenerator::new();
-        let prog = read_string(source).unwrap();
-        let kprog = k_normalize(prog.clone(), &mut NameGenerator::new());
-        let aprog = a_normalize(kprog.clone());
-        let cprog = copy_prop(aprog.clone());
-        let converted = closure_convert(cprog.clone(), &mut namer);
-        println!("Converted program:\n{}", crate::format_prog(&converted));
-        generate_c_code(converted)
-    }
-
-    #[test]
-    fn test_simple_function() {
-        let c_code = compile_to_c(
-            r#"
-(+ 1 (* 2 3))
-"#,
-        );
-        println!("Simple function test:\n{}", c_code);
     }
 }

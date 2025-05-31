@@ -195,14 +195,14 @@ impl fmt::Display for Expr {
                 freevars: mappings,
                 body,
             } => {
-                write!(f, "(letclos ({} {} (", name, closid)?;
+                write!(f, "(letclos ({} ({} (", name, closid)?;
                 for (i, id) in mappings.iter().enumerate() {
                     if i > 0 {
                         write!(f, " ")?;
                     }
                     write!(f, "{}", id)?;
                 }
-                write!(f, ") {})", body)
+                write!(f, "))) {})", body)
             }
         }
     }

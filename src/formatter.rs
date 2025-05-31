@@ -396,7 +396,7 @@ impl PrettyFormatter {
             .join(" ");
 
         format!(
-            "(letclos ({} {}\n{}({})\n{})\n{}{}\n{})",
+            "(letclos ({} ({}\n{}({}))\n{})\n{}{}\n{})",
             name,
             closid,
             freevar_indent,

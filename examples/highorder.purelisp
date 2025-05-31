@@ -1,0 +1,17 @@
+(defun dec (x)
+    (- x 1)
+)
+
+(letfun
+    (makefac (maker)
+        (fn (x)
+            (if (= x 0)
+                1
+                (* x ((maker maker) (dec x)))
+            )
+        )
+    )
+    (let ((fac (makefac makefac)))
+        (fac 3)
+    )
+)
