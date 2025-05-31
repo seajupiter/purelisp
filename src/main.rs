@@ -1,3 +1,4 @@
+use purelisp::read_file;
 use purelisp::{compl, intpt};
 
 use std::env;
@@ -10,6 +11,7 @@ fn main() {
     let mut use_history = false;
     let mut next_args = Vec::new();
     let mut is_compile_mode = false;
+    let mut is_compile_to_ir = false;
     let mut output_path = None;
 
     // First pass: extract global flags like --history
@@ -23,6 +25,9 @@ fn main() {
             return;
         } else if arg == "--compile" || arg == "-c" || arg == "compile" {
             is_compile_mode = true;
+        } else if arg == "--compile-ir" || arg == "-ir" {
+            is_compile_mode = true;
+            is_compile_to_ir = true;
         } else if arg == "--output" || arg == "-o" {
             if i + 1 < args.len() {
                 output_path = Some(args[i + 1].clone());
@@ -40,7 +45,7 @@ fn main() {
 
     if !next_args.is_empty() {
         if is_compile_mode {
-            // Compile mode - compile the source file to binary
+            // Compile mode - compile the source file to binary or C code
             let source_path = &next_args[0];
             let path = Path::new(source_path);
 
@@ -50,12 +55,16 @@ fn main() {
                     Some(p) => PathBuf::from(p),
                     None => {
                         let mut p = PathBuf::from(source_path);
-                        p.set_extension("plir"); // purelisp IR
+                        if is_compile_to_ir {
+                            p.set_extension("plir"); // purelisp IR
+                        } else {
+                            p.set_extension("c"); // C
+                        }
                         p
                     }
                 };
 
-                match compile_file(path, &out_path) {
+                match compile_file(path, &out_path, is_compile_to_ir) {
                     Ok(()) => println!(
                         "Successfully compiled {} to {}",
                         source_path,
@@ -140,18 +149,30 @@ fn print_usage() {
     println!("  -h, --help           Show this help message");
     println!("  --history            Enable REPL history");
     println!("  -l, --load           Load and execute a file before starting the REPL");
-    println!("  compile, --compile, -c    Compile a file to bytecode (default output is FILE.plb)");
-    println!("  -o, --output FILE    Specify output file for compilation (default is INPUT.plb)");
+    println!(
+        "  compile, --compile, -c    Compile a file to PureLisp IR (default output is FILE.plir)"
+    );
+    println!("  --compile-c, -cc          Compile a file to C code (default output is FILE.c)");
+    println!(
+        "  -o, --output FILE    Specify output file for compilation (default is INPUT.plir/c)"
+    );
 }
 
 /// Compiles a source file to a binary file
-fn compile_file<P: AsRef<Path>, Q: AsRef<Path>>(input_path: P, output_path: Q) -> io::Result<()> {
+fn compile_file<P: AsRef<Path>, Q: AsRef<Path>>(
+    input_path: P,
+    output_path: Q,
+    is_compile_to_ir: bool,
+) -> io::Result<()> {
+    let prog = read_file(input_path)?;
     // Compile the file
-    let compiled_code = compl::codegen::compile(input_path)?;
-
+    let compiled_code = if is_compile_to_ir {
+        compl::compl_to_ir(prog)
+    } else {
+        compl::compl_to_c(prog)
+    };
     // Write the compiled code to the output file
     let mut file = fs::File::create(output_path)?;
     file.write_all(compiled_code.as_bytes())?;
-
     Ok(())
 }

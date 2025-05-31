@@ -1,0 +1,54 @@
+;; Test file for C code generation
+;; This file contains various constructs to test the codegen functionality
+
+;; Simple function definition
+(defun square (x)
+  (* x x))
+
+;; Conditional logic with if
+(defun max (a b)
+  (if (> a b) a b))
+
+;; More complex function with let binding
+(defun compute (x y)
+  (let ((temp (* x y)))
+    (+ temp (/ temp 2))))
+
+;; Global variable definitions
+(def pi 3.14159)
+(def e 2.71828)
+
+;; Function that uses global variables
+(defun circle-area (radius)
+  (* pi (* radius radius)))
+
+;; Helper function for compound interest
+(defun fpow (base exponent)
+  (if (<= exponent 0)
+    1.0
+    (* base (fpow base (- exponent 1)))))
+
+;; Another function using global variables
+(defun compound-interest (principal years)
+  (* principal (fpow e years)))
+
+;; Test global variable directly
+(def test-result (+ pi e))
+
+;; Test cases for the functions
+(square 5)
+(max 10 7)
+(compute 6 7)
+(circle-area 5.0)
+
+;; More complex test: recursive factorial function
+(defun factorial (n)
+  (if (<= n 1)
+    1
+    (* n (factorial (- n 1)))))
+
+(factorial 5)
+
+;; Test global variables
+test-result
+(compound-interest 1000.0 2)

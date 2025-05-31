@@ -1,0 +1,8 @@
+;; Super simple test file for code generation
+
+(def x 1)
+
+(defun add-by-x (y)
+  (+ x y))
+
+(add-by-x 2)
