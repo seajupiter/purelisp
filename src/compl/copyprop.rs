@@ -152,28 +152,24 @@ fn copy_prop_helper(expr: Expr, env: &Env) -> Expr {
 #[cfg(test)]
 mod test {
     use crate::{
-        compl::{anormal::a_normalize, knormal::k_normalize},
-        format_prog, read_string,
+        compl::{anormal::a_normalize, closure::closure_convert, knormal::k_normalize}, format_prog, read_file
     };
 
     use super::*;
 
     #[test]
     fn test_copyprop() {
-        let prog = read_string(
-            r#"
-(defun square (x) (* x x))
-(let ((f (fn (x) (+ (* x x) x)))) (f (+ 1 (* 2 3))))
-(if (= 1 2) nil (let ((x (let ((y 1)) y))) x))
-"#,
-        )
-        .unwrap();
-        let kprog = k_normalize(prog.clone(), &mut crate::compl::util::NameGenerator::new());
+        let prog = read_file("./examples/factorial.purelisp")
+            .unwrap();
+        let mut namer = crate::compl::util::NameGenerator::new();
+        let kprog = k_normalize(prog.clone(), &mut namer);
         let aprog = a_normalize(kprog.clone());
         let cprog = copy_prop(aprog.clone());
+        let lprog = closure_convert(cprog.clone(), &mut namer);
         println!("original:\n{}", format_prog(&prog));
         println!("k-normalized:\n{}", format_prog(&kprog));
         println!("a-normalized:\n{}", format_prog(&aprog));
         println!("copy-propagated:\n{}", format_prog(&cprog));
+        println!("closure-converted:\n{}", format_prog(&lprog));
     }
 }

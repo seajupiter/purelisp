@@ -1,4 +1,4 @@
-; square root function using Newton's method
+; sqrt by Newton's method
 
 (defun newton_it_sqrt (y x n)
     (if (= n 0)
@@ -10,7 +10,7 @@
 (defun mysqrt (x)
     (if (= x 0.0)
         0.0
-        (newton_it_sqrt x 1.0 1000)))
+        (newton_it_sqrt x 1.0 100)))
 
 (mysqrt 100.0)
 (let ((x (mysqrt 100.0))) (* x x))
